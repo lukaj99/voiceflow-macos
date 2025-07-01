@@ -35,6 +35,8 @@
 		E501A1532B4A2B1000123456 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1522B4A2B1000123456 /* HotkeyService.swift */; };
 		E501A1552B4A2B2000123456 /* SessionStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1542B4A2B2000123456 /* SessionStorageService.swift */; };
 		E501A1572B4A2B3000123456 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1562B4A2B3000123456 /* SettingsService.swift */; };
+		E501A1592B4A2C0000123456 /* LaunchScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1582B4A2C0000123456 /* LaunchScreenView.swift */; };
+		E501A15B2B4A2C1000123456 /* LaunchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A15A2B4A2C1000123456 /* LaunchWindowController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +80,8 @@
 		E501A1522B4A2B1000123456 /* HotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyService.swift; sourceTree = "<group>"; };
 		E501A1542B4A2B2000123456 /* SessionStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStorageService.swift; sourceTree = "<group>"; };
 		E501A1562B4A2B3000123456 /* SettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
+		E501A1582B4A2C0000123456 /* LaunchScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchScreenView.swift; sourceTree = "<group>"; };
+		E501A15A2B4A2C1000123456 /* LaunchWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +164,7 @@
 		E501A1332B4A1E2000123456 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				E501A15C2B4A2C2000123456 /* Launch */,
 				E501A1382B4A1E7000123456 /* MenuBar */,
 				E501A1392B4A1E8000123456 /* FloatingWidget */,
 				E501A13A2B4A1E9000123456 /* Transcription */,
@@ -228,6 +233,15 @@
 				E501A11B2B4A1BE000123456 /* TranscriptionViewModel.swift */,
 			);
 			path = Transcription;
+			sourceTree = "<group>";
+		};
+		E501A15C2B4A2C2000123456 /* Launch */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1582B4A2C0000123456 /* LaunchScreenView.swift */,
+				E501A15A2B4A2C1000123456 /* LaunchWindowController.swift */,
+			);
+			path = Launch;
 			sourceTree = "<group>";
 		};
 		E501A1482B4A2A7000123456 /* Services */ = {
@@ -383,6 +397,8 @@
 				E501A1532B4A2B1000123456 /* HotkeyService.swift in Sources */,
 				E501A1552B4A2B2000123456 /* SessionStorageService.swift in Sources */,
 				E501A1572B4A2B3000123456 /* SettingsService.swift in Sources */,
+				E501A1592B4A2C0000123456 /* LaunchScreenView.swift in Sources */,
+				E501A15B2B4A2C1000123456 /* LaunchWindowController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

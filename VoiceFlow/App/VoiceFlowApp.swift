@@ -32,8 +32,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private var floatingWidgetController: FloatingWidgetController?
     private var transcriptionViewModel: TranscriptionViewModel?
+    private var launchWindowController: LaunchWindowController?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Show launch screen
+        showLaunchScreen()
+        
+        // Initialize app components after brief delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.initializeAppComponents()
+        }
+    }
+    
+    private func showLaunchScreen() {
+        launchWindowController = LaunchWindowController()
+        launchWindowController?.showLaunchScreen()
+    }
+    
+    private func initializeAppComponents() {
         // Initialize view model
         transcriptionViewModel = TranscriptionViewModel()
         
@@ -47,8 +63,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             floatingWidgetController = FloatingWidgetController(viewModel: viewModel)
         }
         
-        // Hide main window initially
-        NSApp.windows.forEach { $0.orderOut(nil) }
+        // Hide main window initially (keep only menu bar)
+        NSApp.windows.filter { $0.title == "VoiceFlow" }.forEach { $0.orderOut(nil) }
     }
     
     func applicationWillTerminate(_ notification: Notification) {
