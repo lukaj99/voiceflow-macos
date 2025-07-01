@@ -1,0 +1,635 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E501A1012B4A1B3400123456 /* VoiceFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1002B4A1B3400123456 /* VoiceFlowApp.swift */; };
+		E501A1032B4A1B3600123456 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E501A1022B4A1B3600123456 /* Assets.xcassets */; };
+		E501A10E2B4A1B7200123456 /* AudioEngineManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A10D2B4A1B7200123456 /* AudioEngineManager.swift */; };
+		E501A1102B4A1B8000123456 /* SpeechAnalyzerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A10F2B4A1B8000123456 /* SpeechAnalyzerEngine.swift */; };
+		E501A1122B4A1B9000123456 /* TranscriptionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1112B4A1B9000123456 /* TranscriptionModels.swift */; };
+		E501A1142B4A1BA000123456 /* PerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1132B4A1BA000123456 /* PerformanceMonitor.swift */; };
+		E501A1162B4A1BB000123456 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1152B4A1BB000123456 /* MenuBarController.swift */; };
+		E501A1182B4A1BC000123456 /* FloatingWidgetWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1172B4A1BC000123456 /* FloatingWidgetWindow.swift */; };
+		E501A11A2B4A1BD000123456 /* FloatingWidgetController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1192B4A1BD000123456 /* FloatingWidgetController.swift */; };
+		E501A11C2B4A1BE000123456 /* TranscriptionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A11B2B4A1BE000123456 /* TranscriptionViewModel.swift */; };
+		E501A1232B4A1C1000123456 /* AudioEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1222B4A1C1000123456 /* AudioEngineTests.swift */; };
+		E501A1252B4A1C2000123456 /* SpeechAnalyzerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1242B4A1C2000123456 /* SpeechAnalyzerTests.swift */; };
+		E501A1272B4A1C3000123456 /* MenuBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1262B4A1C3000123456 /* MenuBarTests.swift */; };
+		E501A1292B4A1C4000123456 /* FloatingWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1282B4A1C4000123456 /* FloatingWidgetTests.swift */; };
+		E501A12B2B4A1C5000123456 /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A12A2B4A1C5000123456 /* PerformanceTests.swift */; };
+		E501A12D2B4A1D0000123456 /* HotKey in Frameworks */ = {isa = PBXBuildFile; productRef = E501A12C2B4A1D0000123456 /* HotKey */; };
+		E501A12F2B4A1D1000123456 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = E501A12E2B4A1D1000123456 /* KeychainAccess */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E501A11F2B4A1C0000123456 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E501A0F52B4A1B3400123456 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E501A0FC2B4A1B3400123456;
+			remoteInfo = VoiceFlow;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		E501A0FD2B4A1B3400123456 /* VoiceFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoiceFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E501A1002B4A1B3400123456 /* VoiceFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceFlowApp.swift; sourceTree = "<group>"; };
+		E501A1022B4A1B3600123456 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E501A1072B4A1B3600123456 /* VoiceFlow.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VoiceFlow.entitlements; sourceTree = "<group>"; };
+		E501A10D2B4A1B7200123456 /* AudioEngineManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineManager.swift; sourceTree = "<group>"; };
+		E501A10F2B4A1B8000123456 /* SpeechAnalyzerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAnalyzerEngine.swift; sourceTree = "<group>"; };
+		E501A1112B4A1B9000123456 /* TranscriptionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionModels.swift; sourceTree = "<group>"; };
+		E501A1132B4A1BA000123456 /* PerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMonitor.swift; sourceTree = "<group>"; };
+		E501A1152B4A1BB000123456 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		E501A1172B4A1BC000123456 /* FloatingWidgetWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWidgetWindow.swift; sourceTree = "<group>"; };
+		E501A1192B4A1BD000123456 /* FloatingWidgetController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWidgetController.swift; sourceTree = "<group>"; };
+		E501A11B2B4A1BE000123456 /* TranscriptionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionViewModel.swift; sourceTree = "<group>"; };
+		E501A11E2B4A1C0000123456 /* VoiceFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VoiceFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E501A1222B4A1C1000123456 /* AudioEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineTests.swift; sourceTree = "<group>"; };
+		E501A1242B4A1C2000123456 /* SpeechAnalyzerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAnalyzerTests.swift; sourceTree = "<group>"; };
+		E501A1262B4A1C3000123456 /* MenuBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTests.swift; sourceTree = "<group>"; };
+		E501A1282B4A1C4000123456 /* FloatingWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWidgetTests.swift; sourceTree = "<group>"; };
+		E501A12A2B4A1C5000123456 /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
+		E501A1302B4A1D2000123456 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E501A0FA2B4A1B3400123456 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E501A12D2B4A1D0000123456 /* HotKey in Frameworks */,
+				E501A12F2B4A1D1000123456 /* KeychainAccess in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E501A11D2B4A1C0000123456 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E501A0F42B4A1B3400123456 = {
+			isa = PBXGroup;
+			children = (
+				E501A0FF2B4A1B3400123456 /* VoiceFlow */,
+				E501A1202B4A1C0000123456 /* VoiceFlowTests */,
+				E501A0FE2B4A1B3400123456 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E501A0FE2B4A1B3400123456 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E501A0FD2B4A1B3400123456 /* VoiceFlow.app */,
+				E501A11E2B4A1C0000123456 /* VoiceFlowTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E501A0FF2B4A1B3400123456 /* VoiceFlow */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1002B4A1B3400123456 /* VoiceFlowApp.swift */,
+				E501A1312B4A1E0000123456 /* App */,
+				E501A1322B4A1E1000123456 /* Core */,
+				E501A1332B4A1E2000123456 /* Features */,
+				E501A1342B4A1E3000123456 /* Resources */,
+				E501A1072B4A1B3600123456 /* VoiceFlow.entitlements */,
+			);
+			path = VoiceFlow;
+			sourceTree = "<group>";
+		};
+		E501A1202B4A1C0000123456 /* VoiceFlowTests */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1352B4A1E4000123456 /* Unit */,
+				E501A1362B4A1E5000123456 /* Performance */,
+			);
+			path = VoiceFlowTests;
+			sourceTree = "<group>";
+		};
+		E501A1312B4A1E0000123456 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1302B4A1D2000123456 /* Info.plist */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		E501A1322B4A1E1000123456 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1372B4A1E6000123456 /* TranscriptionEngine */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		E501A1332B4A1E2000123456 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1382B4A1E7000123456 /* MenuBar */,
+				E501A1392B4A1E8000123456 /* FloatingWidget */,
+				E501A13A2B4A1E9000123456 /* Transcription */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		E501A1342B4A1E3000123456 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1022B4A1B3600123456 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		E501A1352B4A1E4000123456 /* Unit */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1222B4A1C1000123456 /* AudioEngineTests.swift */,
+				E501A1242B4A1C2000123456 /* SpeechAnalyzerTests.swift */,
+				E501A1262B4A1C3000123456 /* MenuBarTests.swift */,
+				E501A1282B4A1C4000123456 /* FloatingWidgetTests.swift */,
+			);
+			path = Unit;
+			sourceTree = "<group>";
+		};
+		E501A1362B4A1E5000123456 /* Performance */ = {
+			isa = PBXGroup;
+			children = (
+				E501A12A2B4A1C5000123456 /* PerformanceTests.swift */,
+			);
+			path = Performance;
+			sourceTree = "<group>";
+		};
+		E501A1372B4A1E6000123456 /* TranscriptionEngine */ = {
+			isa = PBXGroup;
+			children = (
+				E501A10D2B4A1B7200123456 /* AudioEngineManager.swift */,
+				E501A10F2B4A1B8000123456 /* SpeechAnalyzerEngine.swift */,
+				E501A1112B4A1B9000123456 /* TranscriptionModels.swift */,
+				E501A1132B4A1BA000123456 /* PerformanceMonitor.swift */,
+			);
+			path = TranscriptionEngine;
+			sourceTree = "<group>";
+		};
+		E501A1382B4A1E7000123456 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1152B4A1BB000123456 /* MenuBarController.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		E501A1392B4A1E8000123456 /* FloatingWidget */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1172B4A1BC000123456 /* FloatingWidgetWindow.swift */,
+				E501A1192B4A1BD000123456 /* FloatingWidgetController.swift */,
+			);
+			path = FloatingWidget;
+			sourceTree = "<group>";
+		};
+		E501A13A2B4A1E9000123456 /* Transcription */ = {
+			isa = PBXGroup;
+			children = (
+				E501A11B2B4A1BE000123456 /* TranscriptionViewModel.swift */,
+			);
+			path = Transcription;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E501A0FC2B4A1B3400123456 /* VoiceFlow */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E501A10A2B4A1B3600123456 /* Build configuration list for PBXNativeTarget "VoiceFlow" */;
+			buildPhases = (
+				E501A0F92B4A1B3400123456 /* Sources */,
+				E501A0FA2B4A1B3400123456 /* Frameworks */,
+				E501A0FB2B4A1B3400123456 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VoiceFlow;
+			packageProductDependencies = (
+				E501A12C2B4A1D0000123456 /* HotKey */,
+				E501A12E2B4A1D1000123456 /* KeychainAccess */,
+			);
+			productName = VoiceFlow;
+			productReference = E501A0FD2B4A1B3400123456 /* VoiceFlow.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E501A11D2B4A1C0000123456 /* VoiceFlowTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E501A1212B4A1C0000123456 /* Build configuration list for PBXNativeTarget "VoiceFlowTests" */;
+			buildPhases = (
+				E501A11A2B4A1C0000123456 /* Sources */,
+				E501A11B2B4A1C0000123456 /* Frameworks */,
+				E501A11C2B4A1C0000123456 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E501A1202B4A1C0000123456 /* PBXTargetDependency */,
+			);
+			name = VoiceFlowTests;
+			productName = VoiceFlowTests;
+			productReference = E501A11E2B4A1C0000123456 /* VoiceFlowTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E501A0F52B4A1B3400123456 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					E501A0FC2B4A1B3400123456 = {
+						CreatedOnToolsVersion = 15.2;
+					};
+					E501A11D2B4A1C0000123456 = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = E501A0FC2B4A1B3400123456;
+					};
+				};
+			};
+			buildConfigurationList = E501A0F82B4A1B3400123456 /* Build configuration list for PBXProject "VoiceFlow" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E501A0F42B4A1B3400123456;
+			packageReferences = (
+				E501A12B2B4A1CF000123456 /* XCRemoteSwiftPackageReference "HotKey" */,
+				E501A12E2B4A1D0500123456 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+			);
+			productRefGroup = E501A0FE2B4A1B3400123456 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E501A0FC2B4A1B3400123456 /* VoiceFlow */,
+				E501A11D2B4A1C0000123456 /* VoiceFlowTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E501A0FB2B4A1B3400123456 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E501A1032B4A1B3600123456 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E501A11C2B4A1C0000123456 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E501A0F92B4A1B3400123456 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E501A1012B4A1B3400123456 /* VoiceFlowApp.swift in Sources */,
+				E501A10E2B4A1B7200123456 /* AudioEngineManager.swift in Sources */,
+				E501A1102B4A1B8000123456 /* SpeechAnalyzerEngine.swift in Sources */,
+				E501A1122B4A1B9000123456 /* TranscriptionModels.swift in Sources */,
+				E501A1142B4A1BA000123456 /* PerformanceMonitor.swift in Sources */,
+				E501A1162B4A1BB000123456 /* MenuBarController.swift in Sources */,
+				E501A1182B4A1BC000123456 /* FloatingWidgetWindow.swift in Sources */,
+				E501A11A2B4A1BD000123456 /* FloatingWidgetController.swift in Sources */,
+				E501A11C2B4A1BE000123456 /* TranscriptionViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E501A11A2B4A1C0000123456 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E501A1232B4A1C1000123456 /* AudioEngineTests.swift in Sources */,
+				E501A1252B4A1C2000123456 /* SpeechAnalyzerTests.swift in Sources */,
+				E501A1272B4A1C3000123456 /* MenuBarTests.swift in Sources */,
+				E501A1292B4A1C4000123456 /* FloatingWidgetTests.swift in Sources */,
+				E501A12B2B4A1C5000123456 /* PerformanceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E501A1202B4A1C0000123456 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E501A0FC2B4A1B3400123456 /* VoiceFlow */;
+			targetProxy = E501A11F2B4A1C0000123456 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E501A1082B4A1B3600123456 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		E501A1092B4A1B3600123456 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		E501A10B2B4A1B3600123456 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VoiceFlow/VoiceFlow.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VoiceFlow/App/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VoiceFlow;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "VoiceFlow can read your active app to improve transcription accuracy with context-aware corrections.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 VoiceFlow. All rights reserved.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "VoiceFlow needs microphone access to transcribe your speech in real-time.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.voiceflow.mac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		E501A10C2B4A1B3600123456 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VoiceFlow/VoiceFlow.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VoiceFlow/App/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VoiceFlow;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "VoiceFlow can read your active app to improve transcription accuracy with context-aware corrections.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 VoiceFlow. All rights reserved.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "VoiceFlow needs microphone access to transcribe your speech in real-time.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.voiceflow.mac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		E501A1222B4A1C0000123456 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.voiceflow.mac.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VoiceFlow.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/VoiceFlow";
+			};
+			name = Debug;
+		};
+		E501A1232B4A1C0000123456 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.voiceflow.mac.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VoiceFlow.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/VoiceFlow";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E501A0F82B4A1B3400123456 /* Build configuration list for PBXProject "VoiceFlow" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E501A1082B4A1B3600123456 /* Debug */,
+				E501A1092B4A1B3600123456 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E501A10A2B4A1B3600123456 /* Build configuration list for PBXNativeTarget "VoiceFlow" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E501A10B2B4A1B3600123456 /* Debug */,
+				E501A10C2B4A1B3600123456 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E501A1212B4A1C0000123456 /* Build configuration list for PBXNativeTarget "VoiceFlowTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E501A1222B4A1C0000123456 /* Debug */,
+				E501A1232B4A1C0000123456 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E501A12B2B4A1CF000123456 /* XCRemoteSwiftPackageReference "HotKey" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/soffes/HotKey";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.0;
+			};
+		};
+		E501A12E2B4A1D0500123456 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.2.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E501A12C2B4A1D0000123456 /* HotKey */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E501A12B2B4A1CF000123456 /* XCRemoteSwiftPackageReference "HotKey" */;
+			productName = HotKey;
+		};
+		E501A12E2B4A1D1000123456 /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E501A12E2B4A1D0500123456 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E501A0F52B4A1B3400123456 /* Project object */;
+}

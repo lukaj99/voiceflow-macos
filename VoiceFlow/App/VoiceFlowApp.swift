@@ -59,13 +59,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-struct TranscriptionMainView: View {
-    @StateObject var viewModel: TranscriptionViewModel
-    
-    var body: some View {
-        Text("Transcription View - To be implemented")
-    }
-}
 
 struct SettingsView: View {
     var body: some View {
