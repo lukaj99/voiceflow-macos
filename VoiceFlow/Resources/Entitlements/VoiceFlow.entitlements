@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Sandbox -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    
+    <!-- Microphone access for transcription -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    
+    <!-- File access for exports -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    
+    <!-- Network for optional cloud sync -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    
+    <!-- For context awareness (optional feature) -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+    
+    <!-- Apple Events exceptions for specific apps -->
+    <key>com.apple.security.temporary-exception.apple-events</key>
+    <array>
+        <string>com.microsoft.VSCode</string>
+        <string>com.apple.dt.Xcode</string>
+        <string>com.jetbrains.intellij</string>
+        <string>com.apple.mail</string>
+        <string>com.tinyspeck.slackmacgap</string>
+        <string>com.readdle.SparkDesktop</string>
+        <string>com.microsoft.teams2</string>
+        <string>us.zoom.xos</string>
+        <string>com.apple.Notes</string>
+        <string>md.obsidian</string>
+        <string>com.microsoft.Word</string>
+    </array>
+    
+    <!-- Hardened Runtime -->
+    <key>com.apple.security.hardened-runtime</key>
+    <true/>
+</dict>
+</plist>
