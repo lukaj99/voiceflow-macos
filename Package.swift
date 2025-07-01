@@ -8,7 +8,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/soffes/HotKey", from: "0.2.0"),
-        .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0")
+        .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0"),
+        .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0")
     ],
     products: [
         .executable(
@@ -19,7 +20,11 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "VoiceFlow",
-            dependencies: ["HotKey", "KeychainAccess"],
+            dependencies: [
+                "HotKey", 
+                "KeychainAccess",
+                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
+            ],
             path: "VoiceFlow",
             sources: [
                 "main.swift",
