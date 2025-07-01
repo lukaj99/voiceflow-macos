@@ -7,7 +7,8 @@ let package = Package(
         .macOS(.v14)
     ],
     dependencies: [
-        .package(url: "https://github.com/soffes/HotKey", from: "0.2.0")
+        .package(url: "https://github.com/soffes/HotKey", from: "0.2.0"),
+        .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0")
     ],
     products: [
         .executable(
@@ -18,7 +19,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "VoiceFlow",
-            dependencies: ["HotKey"],
+            dependencies: ["HotKey", "KeychainAccess"],
             path: "VoiceFlow",
             sources: [
                 "main.swift",
@@ -35,7 +36,11 @@ let package = Package(
                 "Features/MenuBar/MenuBarController.swift",
                 "Features/Settings/SettingsView.swift",
                 "Features/FloatingWidget/FloatingWidgetController.swift",
-                "Features/FloatingWidget/FloatingWidgetWindow.swift"
+                "Features/FloatingWidget/FloatingWidgetWindow.swift",
+                "Services/SettingsService.swift",
+                "Services/SessionStorageService.swift",
+                "Services/HotkeyService.swift",
+                "Services/LaunchAtLoginService.swift"
             ],
             swiftSettings: [
                 .enableUpcomingFeature("BareSlashRegexLiterals"),
