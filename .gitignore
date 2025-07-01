@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Swift
+.build/
+*.playground
+.swiftpm/
+Package.resolved
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Logs
+*.log
+
+# Credentials and secrets
+*.env
+.env.local
+Secrets/
