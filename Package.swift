@@ -56,7 +56,14 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("DeprecateApplicationMain"),
                 .enableUpcomingFeature("GlobalConcurrency"),
-                .enableUpcomingFeature("IsolatedDefaultValues")
+                .enableUpcomingFeature("IsolatedDefaultValues"),
+                .define("SWIFT_CONCURRENCY_STRICT"),
+                .define("VOICEFLOW_PRODUCTION")
+            ],
+            linkerSettings: [
+                .linkedFramework("Speech"),
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("AppKit")
             ]
         )
     ]
