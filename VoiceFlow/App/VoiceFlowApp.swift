@@ -42,8 +42,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             menuBarController = MenuBarController(viewModel: viewModel)
         }
         
-        // Initialize floating widget
-        floatingWidgetController = FloatingWidgetController()
+        // Initialize floating widget with view model
+        if let viewModel = transcriptionViewModel {
+            floatingWidgetController = FloatingWidgetController(viewModel: viewModel)
+        }
         
         // Hide main window initially
         NSApp.windows.forEach { $0.orderOut(nil) }
@@ -72,10 +74,6 @@ struct SettingsView: View {
     }
 }
 
-// Placeholder controller (to be implemented)
-class FloatingWidgetController {
-    init() {}
-}
 
 extension NSAlert {
     static func showError(_ error: Error) {
