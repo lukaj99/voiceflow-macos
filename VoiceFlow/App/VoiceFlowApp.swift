@@ -60,12 +60,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 
-struct SettingsView: View {
-    var body: some View {
-        Text("Settings - To be implemented")
-            .frame(width: 500, height: 400)
-    }
-}
 
 
 extension NSAlert {
