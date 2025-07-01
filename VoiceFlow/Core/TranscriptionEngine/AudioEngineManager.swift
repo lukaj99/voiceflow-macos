@@ -7,7 +7,7 @@ public final class AudioEngineManager: ObservableObject {
     // MARK: - Properties
     
     private let audioEngine = AVAudioEngine()
-    private let audioSession = AVAudioSession.sharedInstance()
+    // Note: AVAudioSession is iOS only, not used on macOS
     
     @Published public private(set) var isRunning = false
     @Published public private(set) var isConfigured = false
@@ -41,15 +41,9 @@ public final class AudioEngineManager: ObservableObject {
     // MARK: - Public Methods
     
     public func configureAudioSession() async throws {
-        do {
-            try audioSession.setCategory(.record, mode: .measurement)
-            try audioSession.setPreferredSampleRate(sampleRate)
-            try audioSession.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
-            try audioSession.setActive(true)
-            isConfigured = true
-        } catch {
-            throw VoiceFlowError.audioSessionFailure(error)
-        }
+        // On macOS, audio configuration is handled differently
+        // We'll configure the audio engine directly
+        isConfigured = true
     }
     
     public func start() async throws {
@@ -150,8 +144,8 @@ public final class AudioEngineManager: ObservableObject {
 
 public enum VoiceFlowError: LocalizedError {
     case microphonePermissionDenied
-    case audioSessionFailure(Error)
-    case audioEngineFailure(Error)
+    case audioSessionFailure(any Error)
+    case audioEngineFailure(any Error)
     case noAudioInput
     case speechRecognitionUnavailable
     case languageNotSupported(String)
@@ -159,8 +153,8 @@ public enum VoiceFlowError: LocalizedError {
     case lowConfidenceResult(Double)
     case insufficientMemory
     case modelLoadFailure(String)
-    case storageFailure(Error)
-    case syncFailure(Error)
+    case storageFailure(any Error)
+    case syncFailure(any Error)
     case authenticationFailure
     
     public var errorDescription: String? {

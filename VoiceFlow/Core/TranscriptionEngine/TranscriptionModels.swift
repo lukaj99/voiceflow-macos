@@ -1,9 +1,10 @@
 import Foundation
+import Combine
 
 // MARK: - Transcription Update Types
 
 public struct TranscriptionUpdate: Codable, Identifiable, Sendable {
-    public let id = UUID()
+    public let id: UUID
     public let timestamp: Date
     public let type: UpdateType
     public let text: String
@@ -42,6 +43,7 @@ public struct TranscriptionUpdate: Codable, Identifiable, Sendable {
     }
     
     public init(
+        id: UUID = UUID(),
         timestamp: Date = Date(),
         type: UpdateType,
         text: String,
@@ -49,6 +51,7 @@ public struct TranscriptionUpdate: Codable, Identifiable, Sendable {
         alternatives: [Alternative]? = nil,
         wordTimings: [WordTiming]? = nil
     ) {
+        self.id = id
         self.timestamp = timestamp
         self.type = type
         self.text = text
@@ -165,7 +168,8 @@ public enum PrivacyMode: String, Codable, CaseIterable, Sendable {
 
 // MARK: - Transcription Engine Protocol
 
-public protocol TranscriptionEngineProtocol: Actor {
+@MainActor
+public protocol TranscriptionEngineProtocol: Sendable {
     var transcriptionPublisher: AnyPublisher<TranscriptionUpdate, Never> { get }
     
     func startTranscription() async throws

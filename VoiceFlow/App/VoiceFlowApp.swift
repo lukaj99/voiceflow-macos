@@ -1,7 +1,6 @@
 import SwiftUI
 import AppKit
 
-@main
 struct VoiceFlowApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var transcriptionViewModel = TranscriptionViewModel()
@@ -11,9 +10,12 @@ struct VoiceFlowApp: App {
         WindowGroup("VoiceFlow") {
             TranscriptionMainView(viewModel: transcriptionViewModel)
                 .frame(
-                    minWidth: 400, minHeight: 300,
-                    idealWidth: 600, idealHeight: 400,
-                    maxWidth: 1200, maxHeight: 800
+                    minWidth: 400, 
+                    idealWidth: 600, 
+                    maxWidth: 1200, 
+                    minHeight: 300, 
+                    idealHeight: 400, 
+                    maxHeight: 800
                 )
         }
         .windowStyle(.hiddenTitleBar)
@@ -28,6 +30,7 @@ struct VoiceFlowApp: App {
     }
 }
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private var floatingWidgetController: FloatingWidgetController?
@@ -69,7 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationWillTerminate(_ notification: Notification) {
         // Cleanup
-        Task {
+        Task { @MainActor in
             await transcriptionViewModel?.stopTranscription()
         }
     }
@@ -79,7 +82,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 
 extension NSAlert {
-    static func showError(_ error: Error) {
+    static func showError(_ error: any Error) {
         let alert = NSAlert()
         alert.messageText = "Error"
         alert.informativeText = error.localizedDescription

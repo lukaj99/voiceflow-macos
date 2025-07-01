@@ -2,7 +2,7 @@ import Foundation
 import os.log
 import QuartzCore
 
-public final class PerformanceMonitor {
+public final class PerformanceMonitor: @unchecked Sendable {
     // MARK: - Singleton
     
     public static let shared = PerformanceMonitor()
@@ -58,16 +58,20 @@ public final class PerformanceMonitor {
     // MARK: - Monitoring
     
     private func startMonitoring() {
-        // Start periodic monitoring
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.updateMetrics()
+        // Start periodic monitoring using MainActor-isolated Task scheduling
+        Task { @MainActor in
+            while true {
+                updateMetrics()
+                try? await Task.sleep(for: .seconds(1))
+            }
         }
     }
     
+    @MainActor
     private func updateMetrics() {
-        measurementQueue.async { [weak self] in
-            self?.updateMemoryUsage()
-            self?.updateCPUUsage()
+        Task {
+            await updateMemoryUsage()
+            await updateCPUUsage()
         }
     }
     
@@ -97,14 +101,14 @@ public final class PerformanceMonitor {
             
             // Check against requirements
             if latency > LatencyRequirements.transcriptionP95 {
-                os_log(.warning, log: self.performanceLog, "Latency exceeds P95 target: %.2fms", latency * 1000)
+                os_log("Latency exceeds P95 target: %.2fms", log: self.performanceLog, type: .error, latency * 1000)
             }
         }
     }
     
     // MARK: - Memory Monitoring
     
-    private func updateMemoryUsage() {
+    private func updateMemoryUsage() async {
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
@@ -119,17 +123,19 @@ public final class PerformanceMonitor {
         
         if result == KERN_SUCCESS {
             let memoryUsage = Int(info.resident_size)
-            currentMemoryUsage = memoryUsage
+            await MainActor.run {
+                currentMemoryUsage = memoryUsage
+            }
             
             if memoryUsage > MemoryRequirements.warningThreshold {
-                os_log(.warning, log: performanceLog, "Memory usage exceeds warning threshold: %d MB", memoryUsage / 1_000_000)
+                os_log("Memory usage exceeds warning threshold: %d MB", log: performanceLog, type: .error, memoryUsage / 1_000_000)
             }
         }
     }
     
     // MARK: - CPU Monitoring
     
-    private func updateCPUUsage() {
+    private func updateCPUUsage() async {
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
@@ -146,10 +152,14 @@ public final class PerformanceMonitor {
             // This is a simplified CPU calculation
             // In production, use host_processor_info for accurate measurements
             let cpuUsage = Double(info.user_time.microseconds + info.system_time.microseconds) / 1_000_000.0
-            currentCPUUsage = min(cpuUsage, 1.0)
+            let normalizedUsage = min(cpuUsage, 1.0)
             
-            if currentCPUUsage > CPURequirements.peakUsage {
-                os_log(.warning, log: performanceLog, "CPU usage exceeds peak target: %.1f%%", currentCPUUsage * 100)
+            await MainActor.run {
+                currentCPUUsage = normalizedUsage
+            }
+            
+            if normalizedUsage > CPURequirements.peakUsage {
+                os_log("CPU usage exceeds peak target: %.1f%%", log: performanceLog, type: .error, normalizedUsage * 100)
             }
         }
     }

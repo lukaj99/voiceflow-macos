@@ -52,13 +52,13 @@ public final class MenuBarController: NSObject {
     
     // MARK: - Setup
     
-    private func setupMenu() {
+    @MainActor private func setupMenu() {
         // Configure status item button
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "mic.circle", accessibilityDescription: "VoiceFlow")
             button.target = self
             button.action = #selector(toggleMenu)
-            button.accessibilityLabel = "VoiceFlow Transcription"
+            button.setAccessibilityLabel("VoiceFlow Transcription")
         }
         
         // Build menu
@@ -217,7 +217,7 @@ public final class MenuBarController: NSObject {
     
     // MARK: - Error Handling
     
-    func showError(_ error: Error) {
+    func showError(_ error: any Error) {
         // Remove existing error items
         menu.items.removeAll { $0.tag == Tags.error }
         
@@ -259,7 +259,7 @@ public final class MenuBarController: NSObject {
         }
     }
     
-    @objc func openSettings(_ sender: Any?) {
+    @MainActor @objc func openSettings(_ sender: Any?) {
         onSettingsOpen?()
         
         // Open settings window
@@ -280,17 +280,11 @@ public final class MenuBarController: NSObject {
         }
     }
     
-    @objc func quit(_ sender: Any?) {
+    @MainActor @objc func quit(_ sender: Any?) {
         onQuit?()
         NSApplication.shared.terminate(nil)
     }
 }
 
 // MARK: - SwiftUI Settings View Placeholder
-
-struct SettingsView: View {
-    var body: some View {
-        Text("Settings - To be implemented")
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
+// Note: Real SettingsView is defined in Features/Settings/SettingsView.swift

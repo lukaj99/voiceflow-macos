@@ -79,7 +79,7 @@ public final class SpeechAnalyzerEngine: TranscriptionEngineProtocol {
         setupAudioEngine()
     }
     
-    private func setupAudioEngine() {
+    @MainActor private func setupAudioEngine() {
         audioEngine.onBufferProcessed = { [weak self] buffer in
             Task { @AudioProcessingActor [weak self] in
                 await self?.processAudioBuffer(buffer, at: AVAudioTime(hostTime: mach_absolute_time()))
@@ -209,7 +209,7 @@ public final class SpeechAnalyzerEngine: TranscriptionEngineProtocol {
     
     // MARK: - Recognition Handling
     
-    private func handleRecognitionResult(_ result: SFSpeechRecognitionResult?, error: Error?) async {
+    private func handleRecognitionResult(_ result: SFSpeechRecognitionResult?, error: (any Error)?) async {
         if let error = error {
             await handleRecognitionError(error)
             return
@@ -247,7 +247,7 @@ public final class SpeechAnalyzerEngine: TranscriptionEngineProtocol {
         transcriptionSubject.send(update)
     }
     
-    private func handleRecognitionError(_ error: Error) async {
+    private func handleRecognitionError(_ error: any Error) async {
         // Attempt recovery based on error type
         if (error as NSError).code == 203 { // Audio engine error
             try? await audioEngine.stop()
@@ -337,7 +337,7 @@ public final class SpeechAnalyzerEngine: TranscriptionEngineProtocol {
         let segments = result.bestTranscription.segments
         guard !segments.isEmpty else { return 0.0 }
         
-        let totalConfidence = segments.reduce(0.0) { $0 + $1.confidence }
+        let totalConfidence = segments.reduce(0.0) { $0 + Double($1.confidence) }
         return totalConfidence / Double(segments.count)
     }
     
@@ -358,7 +358,7 @@ public final class SpeechAnalyzerEngine: TranscriptionEngineProtocol {
                 word: segment.substring,
                 startTime: segment.timestamp,
                 endTime: segment.timestamp + segment.duration,
-                confidence: segment.confidence
+                confidence: Double(segment.confidence)
             )
         }
     }

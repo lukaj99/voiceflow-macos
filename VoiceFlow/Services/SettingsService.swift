@@ -232,48 +232,48 @@ public final class SettingsService: ObservableObject {
         customVocabulary.removeAll { $0 == word }
     }
     
-    public func getAvailableLanguages() -> [Language] {
+    public func getAvailableLanguages() -> [VoiceLanguage] {
         return [
-            Language(code: "en-US", name: "English (US)", flag: "🇺🇸"),
-            Language(code: "en-GB", name: "English (UK)", flag: "🇬🇧"),
-            Language(code: "en-AU", name: "English (Australia)", flag: "🇦🇺"),
-            Language(code: "en-CA", name: "English (Canada)", flag: "🇨🇦"),
-            Language(code: "es-ES", name: "Spanish (Spain)", flag: "🇪🇸"),
-            Language(code: "es-MX", name: "Spanish (Mexico)", flag: "🇲🇽"),
-            Language(code: "fr-FR", name: "French (France)", flag: "🇫🇷"),
-            Language(code: "fr-CA", name: "French (Canada)", flag: "🇨🇦"),
-            Language(code: "de-DE", name: "German", flag: "🇩🇪"),
-            Language(code: "it-IT", name: "Italian", flag: "🇮🇹"),
-            Language(code: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷"),
-            Language(code: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹"),
-            Language(code: "ru-RU", name: "Russian", flag: "🇷🇺"),
-            Language(code: "ja-JP", name: "Japanese", flag: "🇯🇵"),
-            Language(code: "ko-KR", name: "Korean", flag: "🇰🇷"),
-            Language(code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳"),
-            Language(code: "zh-TW", name: "Chinese (Traditional)", flag: "🇹🇼"),
-            Language(code: "ar-SA", name: "Arabic", flag: "🇸🇦"),
-            Language(code: "hi-IN", name: "Hindi", flag: "🇮🇳"),
-            Language(code: "th-TH", name: "Thai", flag: "🇹🇭"),
-            Language(code: "vi-VN", name: "Vietnamese", flag: "🇻🇳"),
-            Language(code: "nl-NL", name: "Dutch", flag: "🇳🇱"),
-            Language(code: "sv-SE", name: "Swedish", flag: "🇸🇪"),
-            Language(code: "da-DK", name: "Danish", flag: "🇩🇰"),
-            Language(code: "no-NO", name: "Norwegian", flag: "🇳🇴"),
-            Language(code: "fi-FI", name: "Finnish", flag: "🇫🇮"),
-            Language(code: "pl-PL", name: "Polish", flag: "🇵🇱"),
-            Language(code: "cs-CZ", name: "Czech", flag: "🇨🇿"),
-            Language(code: "hu-HU", name: "Hungarian", flag: "🇭🇺"),
-            Language(code: "ro-RO", name: "Romanian", flag: "🇷🇴"),
-            Language(code: "sk-SK", name: "Slovak", flag: "🇸🇰"),
-            Language(code: "hr-HR", name: "Croatian", flag: "🇭🇷"),
-            Language(code: "uk-UA", name: "Ukrainian", flag: "🇺🇦"),
-            Language(code: "bg-BG", name: "Bulgarian", flag: "🇧🇬"),
-            Language(code: "lt-LT", name: "Lithuanian", flag: "🇱🇹"),
-            Language(code: "lv-LV", name: "Latvian", flag: "🇱🇻"),
-            Language(code: "et-EE", name: "Estonian", flag: "🇪🇪"),
-            Language(code: "sl-SI", name: "Slovenian", flag: "🇸🇮"),
-            Language(code: "he-IL", name: "Hebrew", flag: "🇮🇱"),
-            Language(code: "tr-TR", name: "Turkish", flag: "🇹🇷")
+            VoiceVoiceLanguage(code: "en-US", name: "English (US)", flag: "🇺🇸"),
+            VoiceLanguage(code: "en-GB", name: "English (UK)", flag: "🇬🇧"),
+            VoiceLanguage(code: "en-AU", name: "English (Australia)", flag: "🇦🇺"),
+            VoiceLanguage(code: "en-CA", name: "English (Canada)", flag: "🇨🇦"),
+            VoiceLanguage(code: "es-ES", name: "Spanish (Spain)", flag: "🇪🇸"),
+            VoiceLanguage(code: "es-MX", name: "Spanish (Mexico)", flag: "🇲🇽"),
+            VoiceLanguage(code: "fr-FR", name: "French (France)", flag: "🇫🇷"),
+            VoiceLanguage(code: "fr-CA", name: "French (Canada)", flag: "🇨🇦"),
+            VoiceLanguage(code: "de-DE", name: "German", flag: "🇩🇪"),
+            VoiceLanguage(code: "it-IT", name: "Italian", flag: "🇮🇹"),
+            VoiceLanguage(code: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷"),
+            VoiceLanguage(code: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹"),
+            VoiceLanguage(code: "ru-RU", name: "Russian", flag: "🇷🇺"),
+            VoiceLanguage(code: "ja-JP", name: "Japanese", flag: "🇯🇵"),
+            VoiceLanguage(code: "ko-KR", name: "Korean", flag: "🇰🇷"),
+            VoiceLanguage(code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳"),
+            VoiceLanguage(code: "zh-TW", name: "Chinese (Traditional)", flag: "🇹🇼"),
+            VoiceLanguage(code: "ar-SA", name: "Arabic", flag: "🇸🇦"),
+            VoiceLanguage(code: "hi-IN", name: "Hindi", flag: "🇮🇳"),
+            VoiceLanguage(code: "th-TH", name: "Thai", flag: "🇹🇭"),
+            VoiceLanguage(code: "vi-VN", name: "Vietnamese", flag: "🇻🇳"),
+            VoiceLanguage(code: "nl-NL", name: "Dutch", flag: "🇳🇱"),
+            VoiceLanguage(code: "sv-SE", name: "Swedish", flag: "🇸🇪"),
+            VoiceLanguage(code: "da-DK", name: "Danish", flag: "🇩🇰"),
+            VoiceLanguage(code: "no-NO", name: "Norwegian", flag: "🇳🇴"),
+            VoiceLanguage(code: "fi-FI", name: "Finnish", flag: "🇫🇮"),
+            VoiceLanguage(code: "pl-PL", name: "Polish", flag: "🇵🇱"),
+            VoiceLanguage(code: "cs-CZ", name: "Czech", flag: "🇨🇿"),
+            VoiceLanguage(code: "hu-HU", name: "Hungarian", flag: "🇭🇺"),
+            VoiceLanguage(code: "ro-RO", name: "Romanian", flag: "🇷🇴"),
+            VoiceLanguage(code: "sk-SK", name: "Slovak", flag: "🇸🇰"),
+            VoiceLanguage(code: "hr-HR", name: "Croatian", flag: "🇭🇷"),
+            VoiceLanguage(code: "uk-UA", name: "Ukrainian", flag: "🇺🇦"),
+            VoiceLanguage(code: "bg-BG", name: "Bulgarian", flag: "🇧🇬"),
+            VoiceLanguage(code: "lt-LT", name: "Lithuanian", flag: "🇱🇹"),
+            VoiceLanguage(code: "lv-LV", name: "Latvian", flag: "🇱🇻"),
+            VoiceLanguage(code: "et-EE", name: "Estonian", flag: "🇪🇪"),
+            VoiceLanguage(code: "sl-SI", name: "Slovenian", flag: "🇸🇮"),
+            VoiceLanguage(code: "he-IL", name: "Hebrew", flag: "🇮🇱"),
+            VoiceLanguage(code: "tr-TR", name: "Turkish", flag: "🇹🇷")
         ]
     }
 }
@@ -305,7 +305,7 @@ public enum LogLevel: String, CaseIterable, Codable {
     }
 }
 
-public struct Language: Identifiable, Codable {
+public struct VoiceLanguage: Identifiable, Codable {
     public let id = UUID()
     public let code: String
     public let name: String

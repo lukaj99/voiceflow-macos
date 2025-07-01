@@ -2,10 +2,11 @@ import Speech
 import AVFoundation
 import Combine
 import os.log
+import Foundation
 
 /// Real implementation of speech recognition using Apple's Speech framework
 @MainActor
-public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEngineProtocol {
+public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEngineProtocol, @unchecked Sendable {
     // MARK: - Properties
     
     private let speechRecognizer: SFSpeechRecognizer
@@ -168,7 +169,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
         currentLanguage = language
         
         // Recreate speech recognizer with new locale
-        if let newRecognizer = SFSpeechRecognizer(locale: Locale(identifier: language)) {
+        if SFSpeechRecognizer(locale: Locale(identifier: language)) != nil {
             // Stop current recognition if active
             if isTranscribing {
                 await stopTranscription()
@@ -234,7 +235,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
     
     // MARK: - Recognition Handling
     
-    private func handleRecognitionResult(_ result: SFSpeechRecognitionResult?, error: Error?) {
+    private func handleRecognitionResult(_ result: SFSpeechRecognitionResult?, error: (any Error)?) {
         if let error = error {
             handleRecognitionError(error)
             return
@@ -244,7 +245,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
         
         // Calculate time since last update for rate limiting
         let now = Date()
-        let timeSinceLastUpdate = now.timeIntervalSince(lastUpdateTime)
+        _ = now.timeIntervalSince(lastUpdateTime)
         
         // Process the transcription
         let transcription = result.bestTranscription
@@ -295,7 +296,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
         }
     }
     
-    private func handleRecognitionError(_ error: Error) {
+    private func handleRecognitionError(_ error: any Error) {
         logger.error("Speech recognition error: \(error.localizedDescription)")
         
         let nsError = error as NSError
@@ -403,7 +404,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
     
     // MARK: - Vocabulary Loading
     
-    private func loadProgrammingVocabulary(for language: CodingLanguage?) {
+    private func loadProgrammingVocabulary(for language: AppContext.CodingLanguage?) {
         guard let language = language else { return }
         
         switch language {
@@ -437,7 +438,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
         ])
     }
     
-    private func loadDocumentVocabulary(for type: DocumentType) {
+    private func loadDocumentVocabulary(for type: AppContext.DocumentType) {
         switch type {
         case .technical:
             customVocabulary.formUnion([
@@ -460,7 +461,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
         guard !transcription.segments.isEmpty else { return 0.0 }
         
         let totalConfidence = transcription.segments.reduce(0.0) { sum, segment in
-            sum + segment.confidence
+            sum + Double(segment.confidence)
         }
         
         return totalConfidence / Double(transcription.segments.count)
@@ -472,7 +473,7 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
                 word: segment.substring,
                 startTime: segment.timestamp,
                 endTime: segment.timestamp + segment.duration,
-                confidence: segment.confidence
+                confidence: Double(segment.confidence)
             )
         }
     }
@@ -481,17 +482,20 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
 // MARK: - SFSpeechRecognizerDelegate
 
 extension RealSpeechRecognitionEngine: SFSpeechRecognizerDelegate {
-    public func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
+    nonisolated public func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
         logger.info("Speech recognizer availability changed: \(available)")
         
-        if !available && isTranscribing {
-            // Notify user that recognition is temporarily unavailable
-            let update = TranscriptionUpdate(
-                type: .partial,
-                text: "[Speech recognition temporarily unavailable]",
-                confidence: 0.0
-            )
-            transcriptionSubject.send(update)
+        // Handle availability change on main actor
+        Task { @MainActor in
+            if !available && isTranscribing {
+                // Notify user that recognition is temporarily unavailable
+                let update = TranscriptionUpdate(
+                    type: .partial,
+                    text: "[Speech recognition temporarily unavailable]",
+                    confidence: 0.0
+                )
+                transcriptionSubject.send(update)
+            }
         }
     }
 }

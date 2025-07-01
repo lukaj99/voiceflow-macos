@@ -1,6 +1,7 @@
 import Foundation
 import Carbon
 import HotKey
+import AppKit
 
 /// Service for managing global hotkeys
 @MainActor

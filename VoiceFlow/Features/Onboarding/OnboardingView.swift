@@ -284,7 +284,6 @@ public struct OnboardingView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 100))
                     .foregroundColor(.green)
-                    .symbolEffect(.bounce)
             }
             
             // Completion text
@@ -398,8 +397,8 @@ public struct OnboardingView: View {
         }
     }
     
-    private func requestAccessibilityPermission() {
-        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true]
+    @MainActor private func requestAccessibilityPermission() {
+        nonisolated(unsafe) let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true]
         accessibilityPermissionGranted = AXIsProcessTrustedWithOptions(options)
         
         if accessibilityPermissionGranted {
