@@ -31,6 +31,10 @@
 		E501A1432B4A2A4000123456 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1422B4A2A4000123456 /* PDFExporter.swift */; };
 		E501A1452B4A2A5000123456 /* SRTExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1442B4A2A5000123456 /* SRTExporter.swift */; };
 		E501A1472B4A2A6000123456 /* TextExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1462B4A2A6000123456 /* TextExporter.swift */; };
+		E501A1512B4A2B0000123456 /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1502B4A2B0000123456 /* LaunchAtLoginService.swift */; };
+		E501A1532B4A2B1000123456 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1522B4A2B1000123456 /* HotkeyService.swift */; };
+		E501A1552B4A2B2000123456 /* SessionStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1542B4A2B2000123456 /* SessionStorageService.swift */; };
+		E501A1572B4A2B3000123456 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1562B4A2B3000123456 /* SettingsService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +74,10 @@
 		E501A1422B4A2A4000123456 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
 		E501A1442B4A2A5000123456 /* SRTExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SRTExporter.swift; sourceTree = "<group>"; };
 		E501A1462B4A2A6000123456 /* TextExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextExporter.swift; sourceTree = "<group>"; };
+		E501A1502B4A2B0000123456 /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
+		E501A1522B4A2B1000123456 /* HotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyService.swift; sourceTree = "<group>"; };
+		E501A1542B4A2B2000123456 /* SessionStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStorageService.swift; sourceTree = "<group>"; };
+		E501A1562B4A2B3000123456 /* SettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -226,6 +234,10 @@
 			isa = PBXGroup;
 			children = (
 				E501A1492B4A2A8000123456 /* Export */,
+				E501A1502B4A2B0000123456 /* LaunchAtLoginService.swift */,
+				E501A1522B4A2B1000123456 /* HotkeyService.swift */,
+				E501A1542B4A2B2000123456 /* SessionStorageService.swift */,
+				E501A1562B4A2B3000123456 /* SettingsService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -353,7 +365,7 @@
 			files = (
 				E501A1012B4A1B3400123456 /* VoiceFlowApp.swift in Sources */,
 				E501A10E2B4A1B7200123456 /* AudioEngineManager.swift in Sources */,
-				E501A1102B4A1B8000123456 /* SpeechAnalyzerEngine.swift in Sources */,
+				E501A1102B4A1B8000123456 /* RealSpeechRecognitionEngine.swift in Sources */,
 				E501A1122B4A1B9000123456 /* TranscriptionModels.swift in Sources */,
 				E501A1142B4A1BA000123456 /* PerformanceMonitor.swift in Sources */,
 				E501A1162B4A1BB000123456 /* MenuBarController.swift in Sources */,
@@ -367,6 +379,10 @@
 				E501A1432B4A2A4000123456 /* PDFExporter.swift in Sources */,
 				E501A1452B4A2A5000123456 /* SRTExporter.swift in Sources */,
 				E501A1472B4A2A6000123456 /* TextExporter.swift in Sources */,
+				E501A1512B4A2B0000123456 /* LaunchAtLoginService.swift in Sources */,
+				E501A1532B4A2B1000123456 /* HotkeyService.swift in Sources */,
+				E501A1552B4A2B2000123456 /* SessionStorageService.swift in Sources */,
+				E501A1572B4A2B3000123456 /* SettingsService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

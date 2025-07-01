@@ -1,17 +1,13 @@
 import SwiftUI
 
 public struct SettingsView: View {
-    @AppStorage("launchAtLogin") private var launchAtLogin = false
-    @AppStorage("showFloatingWidget") private var showFloatingWidget = true
-    @AppStorage("transcriptionLanguage") private var transcriptionLanguage = "en-US"
-    @AppStorage("accuracyMode") private var accuracyMode = "balanced"
-    @AppStorage("privacyMode") private var privacyMode = "balanced"
-    @AppStorage("retainTranscriptions") private var retainTranscriptions = true
-    @AppStorage("retentionDays") private var retentionDays = 30
-    @AppStorage("enableAnalytics") private var enableAnalytics = false
+    @StateObject private var settingsService = SettingsService()
+    @StateObject private var hotkeyService = HotkeyService()
     
-    @State private var customVocabulary = ""
+    @State private var newVocabularyWord = ""
     @State private var selectedTab = "general"
+    @State private var showingHotkeyRecorder = false
+    @State private var recordingHotkeyFor: HotkeyAction?
     
     public init() {}
     
@@ -110,34 +106,60 @@ public struct SettingsView: View {
             
             VStack(alignment: .leading, spacing: 16) {
                 // Launch at login
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, newValue in
-                        // TODO: Implement launch at login
-                    }
+                Toggle("Launch at Login", isOn: $settingsService.launchAtLogin)
                 
                 // Show floating widget
-                Toggle("Show Floating Widget", isOn: $showFloatingWidget)
+                Toggle("Show Floating Widget", isOn: $settingsService.showFloatingWidget)
                 
-                // Global hotkey
+                // Floating widget settings
+                if settingsService.showFloatingWidget {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Always on Top", isOn: $settingsService.floatingWidgetAlwaysOnTop)
+                            .padding(.leading, 20)
+                    }
+                }
+                
+                // Menu bar icon
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Global Hotkey")
+                    Text("Menu Bar Icon")
                         .font(.headline)
-                    HStack {
-                        Text("⌘⌥Space")
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(.quaternary)
-                            .cornerRadius(6)
-                        
-                        Button("Change") {
-                            // TODO: Implement hotkey recording
+                    Picker("Icon Style", selection: $settingsService.menuBarIcon) {
+                        ForEach(MenuBarIconStyle.allCases, id: \.self) { style in
+                            Text(style.displayName).tag(style)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                
+                // Global hotkeys
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Global Hotkeys")
+                        .font(.headline)
+                    
+                    ForEach(HotkeyAction.allCases, id: \.self) { action in
+                        HStack {
+                            Text(action.rawValue)
+                                .frame(width: 140, alignment: .leading)
+                            
+                            let hotkey = getHotkey(for: action)
+                            Text(hotkeyDisplayString(for: hotkey))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(.quaternary)
+                                .cornerRadius(6)
+                                .monospaced()
+                            
+                            Button("Change") {
+                                recordingHotkeyFor = action
+                                showingHotkeyRecorder = true
+                            }
+                            
+                            Button("Clear") {
+                                hotkeyService.clearHotkey(for: action)
+                            }
                         }
                         .buttonStyle(.plain)
                     }
-                    Text("Press this combination anywhere to start/stop transcription")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
             }
             
             Spacer()
@@ -157,59 +179,32 @@ public struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Language")
                         .font(.headline)
-                    Picker("", selection: $transcriptionLanguage) {
-                        Text("Automatic").tag("auto")
-                        Divider()
-                        Text("English (US)").tag("en-US")
-                        Text("English (UK)").tag("en-GB")
-                        Text("Spanish").tag("es-ES")
-                        Text("French").tag("fr-FR")
-                        Text("German").tag("de-DE")
-                        Text("Chinese").tag("zh-CN")
-                        Text("Japanese").tag("ja-JP")
+                    Picker("", selection: $settingsService.selectedLanguage) {
+                        ForEach(settingsService.getAvailableLanguages()) { language in
+                            Text(language.displayName).tag(language.code)
+                        }
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 200)
+                    .frame(width: 250)
                 }
                 
-                // Accuracy mode
+                // Transcription features
+                Toggle("Enable Punctuation", isOn: $settingsService.enablePunctuation)
+                Toggle("Enable Capitalization", isOn: $settingsService.enableCapitalization)
+                Toggle("Context-Aware Corrections", isOn: $settingsService.enableContextAwareCorrections)
+                Toggle("Real-Time Transcription", isOn: $settingsService.enableRealTimeTranscription)
+                Toggle("Auto-Save Sessions", isOn: $settingsService.autoSaveSessions)
+                
+                // Confidence threshold
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Accuracy Mode")
+                    Text("Confidence Threshold: \(Int(settingsService.confidenceThreshold * 100))%")
                         .font(.headline)
-                    Picker("", selection: $accuracyMode) {
-                        VStack(alignment: .leading) {
-                            Text("Fast")
-                            Text("Lower accuracy, minimal latency")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }.tag("fast")
-                        
-                        VStack(alignment: .leading) {
-                            Text("Balanced")
-                            Text("Good accuracy, low latency")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }.tag("balanced")
-                        
-                        VStack(alignment: .leading) {
-                            Text("Accurate")
-                            Text("Best accuracy, higher latency")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }.tag("accurate")
-                    }
-                    .pickerStyle(.radioGroup)
+                    Slider(value: $settingsService.confidenceThreshold, in: 0.3...1.0, step: 0.05)
+                    Text("Lower values may include less accurate transcriptions")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
-                // Features
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Features")
-                        .font(.headline)
-                    Toggle("Auto-punctuation", isOn: .constant(true))
-                    Toggle("Auto-capitalization", isOn: .constant(true))
-                    Toggle("Smart formatting", isOn: .constant(true))
-                    Toggle("Context awareness", isOn: .constant(true))
-                }
             }
             
             Spacer()
@@ -229,27 +224,15 @@ public struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Privacy Mode")
                         .font(.headline)
-                    Picker("", selection: $privacyMode) {
-                        VStack(alignment: .leading) {
-                            Text("Maximum")
-                            Text("No data leaves your device")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }.tag("maximum")
-                        
-                        VStack(alignment: .leading) {
-                            Text("Balanced")
-                            Text("Anonymous usage data only")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }.tag("balanced")
-                        
-                        VStack(alignment: .leading) {
-                            Text("Convenience")
-                            Text("Full features with encryption")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }.tag("convenience")
+                    Picker("", selection: $settingsService.privacyMode) {
+                        ForEach(PrivacyMode.allCases, id: \.self) { mode in
+                            VStack(alignment: .leading) {
+                                Text(mode.displayName)
+                                Text(mode.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }.tag(mode)
+                        }
                     }
                     .pickerStyle(.radioGroup)
                 }
@@ -258,33 +241,44 @@ public struct SettingsView: View {
                 
                 // Data retention
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Retain Transcriptions", isOn: $retainTranscriptions)
-                    
-                    if retainTranscriptions {
-                        HStack {
-                            Text("Delete after")
-                            Picker("", selection: $retentionDays) {
-                                Text("7 days").tag(7)
-                                Text("30 days").tag(30)
-                                Text("90 days").tag(90)
-                                Text("Never").tag(0)
-                            }
-                            .pickerStyle(.menu)
-                            .frame(width: 120)
+                    Text("Data Retention")
+                        .font(.headline)
+                    HStack {
+                        Text("Delete transcriptions after")
+                        Picker("", selection: $settingsService.dataRetentionDays) {
+                            Text("7 days").tag(7)
+                            Text("30 days").tag(30)
+                            Text("90 days").tag(90)
+                            Text("1 year").tag(365)
+                            Text("Never").tag(0)
                         }
-                        .padding(.leading, 20)
+                        .pickerStyle(.menu)
+                        .frame(width: 120)
                     }
                 }
                 
-                // Analytics
-                Toggle("Share Anonymous Usage Data", isOn: $enableAnalytics)
-                    .disabled(privacyMode == "maximum")
+                Divider()
                 
-                // Clear data
-                Button("Clear All Transcription Data...") {
-                    // TODO: Implement data clearing
+                // Analytics and telemetry
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Analytics & Diagnostics")
+                        .font(.headline)
+                    Toggle("Share Anonymous Usage Data", isOn: $settingsService.enableAnalytics)
+                    Toggle("Share Crash Reports", isOn: $settingsService.enableCrashReporting)
                 }
-                .foregroundColor(.red)
+                
+                Divider()
+                
+                // Danger zone
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Danger Zone")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                    Button("Clear All Transcription Data...") {
+                        // TODO: Implement data clearing confirmation dialog
+                    }
+                    .foregroundColor(.red)
+                }
             }
             
             Spacer()
@@ -308,40 +302,87 @@ public struct SettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    TextEditor(text: $customVocabulary)
-                        .font(.system(.body, design: .monospaced))
-                        .frame(height: 100)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-                        )
+                    // Vocabulary list
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 4) {
+                            ForEach(settingsService.customVocabulary, id: \.self) { word in
+                                HStack {
+                                    Text(word)
+                                    Spacer()
+                                    Button("Remove") {
+                                        settingsService.removeCustomVocabularyWord(word)
+                                    }
+                                    .foregroundColor(.red)
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 100)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    )
                     
-                    Text("One term per line")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    // Add new word
+                    HStack {
+                        TextField("Add word...", text: $newVocabularyWord)
+                            .textFieldStyle(.roundedBorder)
+                        Button("Add") {
+                            settingsService.addCustomVocabularyWord(newVocabularyWord)
+                            newVocabularyWord = ""
+                        }
+                        .disabled(newVocabularyWord.isEmpty)
+                    }
                 }
                 
-                // Model selection
+                // Recognition preferences
+                Toggle("Prefer On-Device Recognition", isOn: $settingsService.preferOnDeviceRecognition)
+                
+                // Buffer size
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Speech Model")
+                    Text("Audio Buffer Size: \(settingsService.maxBufferSize)")
                         .font(.headline)
-                    Picker("", selection: .constant("enhanced")) {
-                        Text("Compact (50MB)").tag("compact")
-                        Text("Enhanced (250MB)").tag("enhanced")
-                        Text("Professional (500MB)").tag("professional")
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 200)
+                    Slider(value: Binding(
+                        get: { Double(settingsService.maxBufferSize) },
+                        set: { settingsService.maxBufferSize = Int($0) }
+                    ), in: 256...4096, step: 256)
+                    Text("Higher values may improve accuracy but increase latency")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 // Developer options
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Developer Options")
                         .font(.headline)
-                    Toggle("Show debug information", isOn: .constant(false))
-                    Toggle("Enable verbose logging", isOn: .constant(false))
-                    Button("Export Logs...") {
-                        // TODO: Implement log export
+                    Toggle("Enable Developer Mode", isOn: $settingsService.enableDeveloperMode)
+                    
+                    if settingsService.enableDeveloperMode {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Picker("Log Level", selection: $settingsService.logLevel) {
+                                ForEach(LogLevel.allCases, id: \.self) { level in
+                                    Text(level.displayName).tag(level)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 120)
+                            
+                            HStack {
+                                Button("Export Settings...") {
+                                    exportSettings()
+                                }
+                                Button("Import Settings...") {
+                                    importSettings()
+                                }
+                                Button("Reset to Defaults") {
+                                    settingsService.resetToDefaults()
+                                }
+                                .foregroundColor(.orange)
+                            }
+                        }
+                        .padding(.leading, 20)
                     }
                 }
             }
@@ -412,6 +453,63 @@ public struct SettingsView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func getHotkey(for action: HotkeyAction) -> HotKey? {
+        switch action {
+        case .toggleRecording:
+            return hotkeyService.toggleRecordingHotkey
+        case .showFloatingWidget:
+            return hotkeyService.showFloatingWidgetHotkey
+        case .showMainWindow:
+            return hotkeyService.showMainWindowHotkey
+        }
+    }
+    
+    private func hotkeyDisplayString(for hotkey: HotKey?) -> String {
+        guard let hotkey = hotkey else { return "None" }
+        let modifiers = hotkey.modifiers.displayString
+        let key = hotkey.key.displayName
+        return modifiers + key
+    }
+    
+    private func exportSettings() {
+        let panel = NSSavePanel()
+        panel.title = "Export Settings"
+        panel.nameFieldStringValue = "VoiceFlow-Settings.json"
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                do {
+                    let data = try settingsService.exportSettings()
+                    try data.write(to: url)
+                } catch {
+                    print("Failed to export settings: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func importSettings() {
+        let panel = NSOpenPanel()
+        panel.title = "Import Settings"
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        
+        panel.begin { response in
+            if response == .OK, let url = panel.urls.first {
+                do {
+                    let data = try Data(contentsOf: url)
+                    try settingsService.importSettings(from: data)
+                } catch {
+                    print("Failed to import settings: \(error)")
+                }
+            }
+        }
     }
 }
 
