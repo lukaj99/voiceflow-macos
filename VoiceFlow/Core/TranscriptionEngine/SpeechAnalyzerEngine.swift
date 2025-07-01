@@ -197,21 +197,13 @@ public final class SpeechAnalyzerEngine: TranscriptionEngineProtocol {
     public func processAudioBuffer(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime) async {
         guard isTranscribing && !isPaused else { return }
         
-        let processingStart = CFAbsoluteTimeGetCurrent()
-        
-        // Append buffer to recognition request
-        recognitionRequest?.append(buffer)
-        
-        // Track performance
-        processedBufferCount += 1
-        lastProcessTime = processingStart
-        
-        // Emit processing metrics periodically
-        if processedBufferCount % 100 == 0 {
-            let averageLatency = (CFAbsoluteTimeGetCurrent() - processingStart) * 1000
-            if averageLatency > 50 {
-                print("Warning: Processing latency exceeding target: \(averageLatency)ms")
-            }
+        await PerformanceMonitor.shared.measureTranscriptionLatency {
+            // Append buffer to recognition request
+            recognitionRequest?.append(buffer)
+            
+            // Track performance
+            processedBufferCount += 1
+            lastProcessTime = CACurrentMediaTime()
         }
     }
     
