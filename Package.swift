@@ -45,7 +45,8 @@ let package = Package(
                 "Services/SettingsService.swift",
                 "Services/SessionStorageService.swift",
                 "Services/HotkeyService.swift",
-                "Services/LaunchAtLoginService.swift"
+                "Services/LaunchAtLoginService.swift",
+                "Parallel/AsyncTranscriptionProcessor.swift"
             ],
             swiftSettings: [
                 .enableUpcomingFeature("BareSlashRegexLiterals"),

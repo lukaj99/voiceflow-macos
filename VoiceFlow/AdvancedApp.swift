@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Combine
+import AsyncAlgorithms
 
 // Advanced VoiceFlow with more features
 @MainActor
