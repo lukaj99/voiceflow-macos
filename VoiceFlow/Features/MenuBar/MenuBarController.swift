@@ -27,7 +27,7 @@ public final class MenuBarController: NSObject {
     var onQuit: (() -> Void)?
     
     // Animation
-    private var audioLevelTimer: Timer?
+    private var audioLevelTask: Task<Void, Never>?
     private let audioLevelFrames: [String] = [
         "mic.circle",
         "mic.circle.fill"
@@ -47,7 +47,7 @@ public final class MenuBarController: NSObject {
     }
     
     deinit {
-        audioLevelTimer?.invalidate()
+        audioLevelTask?.cancel()
     }
     
     // MARK: - Setup
@@ -181,37 +181,42 @@ public final class MenuBarController: NSObject {
         }
     }
     
+    @MainActor
     private func updateAudioLevelAnimation(level: Float) {
         guard viewModel.isTranscribing else {
-            audioLevelTimer?.invalidate()
-            audioLevelTimer = nil
+            audioLevelTask?.cancel()
+            audioLevelTask = nil
             return
         }
         
         // Start animation if not running
-        if audioLevelTimer == nil && level > 0.1 {
+        if audioLevelTask == nil && level > 0.1 {
             startAudioLevelAnimation()
-        } else if audioLevelTimer != nil && level < 0.1 {
+        } else if audioLevelTask != nil && level < 0.1 {
             // Stop animation if audio level is too low
-            audioLevelTimer?.invalidate()
-            audioLevelTimer = nil
+            audioLevelTask?.cancel()
+            audioLevelTask = nil
             updateStatusIcon()
         }
     }
     
+    @MainActor
     private func startAudioLevelAnimation() {
-        var frameIndex = 0
-        
-        audioLevelTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
-            guard let self = self,
-                  let button = self.statusItem.button else { return }
+        audioLevelTask = Task { @MainActor in
+            var frameIndex = 0
             
-            // Alternate between filled and unfilled based on audio level
-            let shouldFill = self.viewModel.currentAudioLevel > 0.3
-            let symbolName = shouldFill ? "mic.circle.fill" : "mic.circle"
-            
-            button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "VoiceFlow")
-            frameIndex = (frameIndex + 1) % 2
+            while !Task.isCancelled && viewModel.isTranscribing {
+                guard let button = statusItem.button else { break }
+                
+                // Alternate between filled and unfilled based on audio level
+                let shouldFill = viewModel.currentAudioLevel > 0.3
+                let symbolName = shouldFill ? "mic.circle.fill" : "mic.circle"
+                
+                button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "VoiceFlow")
+                frameIndex = (frameIndex + 1) % 2
+                
+                try? await Task.sleep(for: .milliseconds(300))
+            }
         }
     }
     

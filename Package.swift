@@ -6,6 +6,9 @@ let package = Package(
     platforms: [
         .macOS(.v14)
     ],
+    dependencies: [
+        .package(url: "https://github.com/soffes/HotKey", from: "0.2.0")
+    ],
     products: [
         .executable(
             name: "VoiceFlow",
@@ -15,6 +18,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "VoiceFlow",
+            dependencies: ["HotKey"],
             path: "VoiceFlow",
             sources: [
                 "main.swift",
@@ -27,7 +31,11 @@ let package = Package(
                 "Services/Export/ExportManager.swift",
                 "Services/Export/TextExporter.swift",
                 "Services/Export/MarkdownExporter.swift",
-                "Services/Export/PDFExporter.swift"
+                "Services/Export/PDFExporter.swift",
+                "Features/MenuBar/MenuBarController.swift",
+                "Features/Settings/SettingsView.swift",
+                "Features/FloatingWidget/FloatingWidgetController.swift",
+                "Features/FloatingWidget/FloatingWidgetWindow.swift"
             ],
             swiftSettings: [
                 .enableUpcomingFeature("BareSlashRegexLiterals"),
