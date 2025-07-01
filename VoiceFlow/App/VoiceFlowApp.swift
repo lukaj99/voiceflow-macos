@@ -31,19 +31,19 @@ struct VoiceFlowApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private var floatingWidgetController: FloatingWidgetController?
-    private var transcriptionEngine: SpeechAnalyzerEngine?
+    private var transcriptionViewModel: TranscriptionViewModel?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Initialize menu bar
-        menuBarController = MenuBarController()
+        // Initialize view model
+        transcriptionViewModel = TranscriptionViewModel()
+        
+        // Initialize menu bar with view model
+        if let viewModel = transcriptionViewModel {
+            menuBarController = MenuBarController(viewModel: viewModel)
+        }
         
         // Initialize floating widget
         floatingWidgetController = FloatingWidgetController()
-        
-        // Initialize transcription engine
-        Task {
-            await initializeTranscriptionEngine()
-        }
         
         // Hide main window initially
         NSApp.windows.forEach { $0.orderOut(nil) }
@@ -52,25 +52,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         // Cleanup
         Task {
-            await transcriptionEngine?.stopTranscription()
+            await transcriptionViewModel?.stopTranscription()
         }
     }
-    
-    private func initializeTranscriptionEngine() async {
-        do {
-            transcriptionEngine = SpeechAnalyzerEngine()
-            // Engine will be connected to UI via Combine publishers
-        } catch {
-            NSAlert.showError(error)
-        }
-    }
-}
-
-// Placeholder view models and views (to be implemented)
-class TranscriptionViewModel: ObservableObject {
-    @Published var transcribedText = ""
-    @Published var isTranscribing = false
-    @Published var currentAudioLevel: Float = 0
 }
 
 struct TranscriptionMainView: View {
@@ -88,17 +72,9 @@ struct SettingsView: View {
     }
 }
 
-// Placeholder controllers (to be implemented)
-class MenuBarController {
-    init() {}
-}
-
+// Placeholder controller (to be implemented)
 class FloatingWidgetController {
     init() {}
-}
-
-class SpeechAnalyzerEngine {
-    func stopTranscription() async {}
 }
 
 extension NSAlert {
