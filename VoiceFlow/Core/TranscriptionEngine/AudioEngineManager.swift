@@ -14,8 +14,8 @@ public final class AudioEngineManager: ObservableObject {
     @Published public private(set) var currentAudioLevel: Float = 0
     
     // Audio configuration
-    public let bufferSize: AVAudioFrameCount = 256  // 5.8ms at 44.1kHz
-    public let sampleRate: Double = 44100
+    public let bufferSize: AVAudioFrameCount = 1024  // Better for speech recognition
+    public let sampleRate: Double = 16000  // Optimal for speech (vs 44100 for music)
     private let audioFormat: AVAudioFormat
     
     // Publishers

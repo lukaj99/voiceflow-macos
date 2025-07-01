@@ -14,8 +14,7 @@ public class TranscriptionViewModel: ObservableObject {
     
     // MARK: - Private Properties
     
-    private var transcriptionEngine: SpeechAnalyzerEngine?
-    private var audioEngine: AudioEngineManager?
+    private var transcriptionEngine: RealSpeechRecognitionEngine?
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Statistics
@@ -42,34 +41,21 @@ public class TranscriptionViewModel: ObservableObject {
     }
     
     private func initializeEngines() async {
-        // Initialize audio engine
-        audioEngine = AudioEngineManager()
-        
-        // Initialize transcription engine
-        transcriptionEngine = SpeechAnalyzerEngine()
+        // Initialize transcription engine (which includes audio engine)
+        transcriptionEngine = RealSpeechRecognitionEngine()
         
         // Setup bindings
         setupBindings()
     }
     
     private func setupBindings() {
-        // Audio level updates
-        audioEngine?.audioLevelPublisher
+        // Transcription updates
+        transcriptionEngine?.transcriptionPublisher
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] level in
-                self?.currentAudioLevel = level
+            .sink { [weak self] update in
+                self?.handleTranscriptionUpdate(update)
             }
             .store(in: &cancellables)
-        
-        // Transcription updates
-        Task {
-            await transcriptionEngine?.transcriptionPublisher
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] update in
-                    self?.handleTranscriptionUpdate(update)
-                }
-                .store(in: &cancellables)
-        }
     }
     
     // MARK: - Public Methods

@@ -10,7 +10,7 @@
 		E501A1012B4A1B3400123456 /* VoiceFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1002B4A1B3400123456 /* VoiceFlowApp.swift */; };
 		E501A1032B4A1B3600123456 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E501A1022B4A1B3600123456 /* Assets.xcassets */; };
 		E501A10E2B4A1B7200123456 /* AudioEngineManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A10D2B4A1B7200123456 /* AudioEngineManager.swift */; };
-		E501A1102B4A1B8000123456 /* SpeechAnalyzerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A10F2B4A1B8000123456 /* SpeechAnalyzerEngine.swift */; };
+		E501A1102B4A1B8000123456 /* RealSpeechRecognitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A10F2B4A1B8000123456 /* RealSpeechRecognitionEngine.swift */; };
 		E501A1122B4A1B9000123456 /* TranscriptionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1112B4A1B9000123456 /* TranscriptionModels.swift */; };
 		E501A1142B4A1BA000123456 /* PerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1132B4A1BA000123456 /* PerformanceMonitor.swift */; };
 		E501A1162B4A1BB000123456 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1152B4A1BB000123456 /* MenuBarController.swift */; };
@@ -42,7 +42,7 @@
 		E501A1022B4A1B3600123456 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E501A1072B4A1B3600123456 /* VoiceFlow.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VoiceFlow.entitlements; sourceTree = "<group>"; };
 		E501A10D2B4A1B7200123456 /* AudioEngineManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineManager.swift; sourceTree = "<group>"; };
-		E501A10F2B4A1B8000123456 /* SpeechAnalyzerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAnalyzerEngine.swift; sourceTree = "<group>"; };
+		E501A10F2B4A1B8000123456 /* RealSpeechRecognitionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealSpeechRecognitionEngine.swift; sourceTree = "<group>"; };
 		E501A1112B4A1B9000123456 /* TranscriptionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionModels.swift; sourceTree = "<group>"; };
 		E501A1132B4A1BA000123456 /* PerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMonitor.swift; sourceTree = "<group>"; };
 		E501A1152B4A1BB000123456 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };

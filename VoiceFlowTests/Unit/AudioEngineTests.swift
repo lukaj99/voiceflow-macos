@@ -1,6 +1,7 @@
 import XCTest
 import AVFoundation
-@testable import VoiceFlowCore
+import Combine
+@testable import VoiceFlow
 
 class AudioEngineTests: XCTestCase {
     var audioEngine: AudioEngineManager!
@@ -48,8 +49,8 @@ class AudioEngineTests: XCTestCase {
         var bufferCount = 0
         
         audioEngine.onBufferProcessed = { buffer in
-            XCTAssertEqual(buffer.frameLength, 256)
-            XCTAssertEqual(buffer.format.sampleRate, 44100)
+            XCTAssertEqual(buffer.frameLength, 1024)
+            XCTAssertEqual(buffer.format.sampleRate, 16000)
             XCTAssertEqual(buffer.format.channelCount, 1)
             bufferCount += 1
             if bufferCount >= 5 {
@@ -99,8 +100,8 @@ class AudioEngineTests: XCTestCase {
     }
     
     func testBufferSizeConfiguration() {
-        XCTAssertEqual(audioEngine.bufferSize, 256)
-        XCTAssertEqual(audioEngine.sampleRate, 44100)
+        XCTAssertEqual(audioEngine.bufferSize, 1024)
+        XCTAssertEqual(audioEngine.sampleRate, 16000)
     }
     
     // MARK: - Performance Tests
@@ -119,21 +120,21 @@ class AudioEngineTests: XCTestCase {
     private func createTestBuffer() -> AVAudioPCMBuffer {
         let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
-            sampleRate: 44100,
+            sampleRate: 16000,
             channels: 1,
             interleaved: false
         )!
         
         let buffer = AVAudioPCMBuffer(
             pcmFormat: format,
-            frameCapacity: 256
+            frameCapacity: 1024
         )!
         
-        buffer.frameLength = 256
+        buffer.frameLength = 1024
         
         // Fill with test data (sine wave)
         if let channelData = buffer.floatChannelData {
-            for i in 0..<256 {
+            for i in 0..<1024 {
                 channelData[0][i] = sin(Float(i) * 0.1) * 0.5
             }
         }
