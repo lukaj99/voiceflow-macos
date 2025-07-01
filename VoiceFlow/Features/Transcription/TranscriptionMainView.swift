@@ -1,5 +1,13 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
+
+// Import Export types with aliases to avoid naming conflicts
+typealias ExportTranscriptionSession = TranscriptionSession
+typealias ExportSessionMetadata = SessionMetadata
+typealias ExportTranscriptionSegment = TranscriptionSegment
+typealias ExportWordTiming = WordTiming
+typealias ExportLanguage = Language
 
 public struct TranscriptionMainView: View {
     @ObservedObject var viewModel: TranscriptionViewModel
@@ -7,6 +15,14 @@ public struct TranscriptionMainView: View {
     @State private var showingExportMenu = false
     @State private var selectedRange: NSRange?
     @FocusState private var isEditorFocused: Bool
+    
+    // Export-related state
+    @State private var exportManager = ExportManager()
+    @State private var isExporting = false
+    @State private var exportProgress: Double = 0.0
+    @State private var exportCurrentStep = ""
+    @State private var exportError: ExportError?
+    @State private var showingExportError = false
     
     // Layout constants
     private let windowSize = CGSize(width: 800, height: 600)
@@ -53,6 +69,11 @@ public struct TranscriptionMainView: View {
                     .frame(height: 28)
                     .background(.ultraThinMaterial)
             }
+            
+            // Export progress overlay
+            if isExporting {
+                exportProgressOverlay
+            }
         }
         .frame(
             minWidth: minWindowSize.width,
@@ -62,6 +83,11 @@ public struct TranscriptionMainView: View {
             maxWidth: maxWindowSize.width,
             maxHeight: maxWindowSize.height
         )
+        .alert("Export Error", isPresented: $showingExportError) {
+            Button("OK") { }
+        } message: {
+            Text(exportError?.localizedDescription ?? "An unknown error occurred during export.")
+        }
         .onAppear {
             isEditorFocused = true
         }
@@ -134,7 +160,8 @@ public struct TranscriptionMainView: View {
                     .font(.title3)
             }
             .buttonStyle(.plain)
-            .help("Export")
+            .disabled(viewModel.transcribedText.isEmpty || isExporting)
+            .help(isExporting ? "Export in progress..." : "Export")
             .popover(isPresented: $showingExportMenu) {
                 exportMenu
             }
@@ -258,7 +285,7 @@ public struct TranscriptionMainView: View {
             VStack(alignment: .leading, spacing: 4) {
                 ExportMenuItem(title: "Plain Text", subtitle: ".txt", action: exportAsText)
                 ExportMenuItem(title: "Markdown", subtitle: ".md", action: exportAsMarkdown)
-                ExportMenuItem(title: "Word Document", subtitle: ".docx", action: exportAsWord)
+                ExportMenuItem(title: "Word Document", subtitle: ".docx", action: exportAsDocx)
                 ExportMenuItem(title: "PDF", subtitle: ".pdf", action: exportAsPDF)
                 ExportMenuItem(title: "Subtitles", subtitle: ".srt", action: exportAsSRT)
             }
@@ -285,39 +312,297 @@ public struct TranscriptionMainView: View {
     
     private func exportAsText() {
         showingExportMenu = false
-        saveToFile(content: viewModel.exportAsText(), fileType: "txt")
+        exportToFile(format: .text)
     }
     
     private func exportAsMarkdown() {
         showingExportMenu = false
-        saveToFile(content: viewModel.exportAsMarkdown(), fileType: "md")
+        exportToFile(format: .markdown)
     }
     
-    private func exportAsWord() {
+    private func exportAsDocx() {
         showingExportMenu = false
-        // TODO: Implement DOCX export
+        exportToFile(format: .docx)
     }
     
     private func exportAsPDF() {
         showingExportMenu = false
-        // TODO: Implement PDF export
+        exportToFile(format: .pdf)
     }
     
     private func exportAsSRT() {
         showingExportMenu = false
-        // TODO: Implement SRT export
+        exportToFile(format: .srt)
     }
     
-    private func saveToFile(content: String, fileType: String) {
-        let savePanel = NSSavePanel()
-        savePanel.title = "Export Transcription"
-        savePanel.allowedContentTypes = [.plainText]
-        savePanel.nameFieldStringValue = "transcription.\(fileType)"
+    private func exportToFile(format: ExportManager.ExportFormat) {
+        // Convert ViewModel's TranscriptionSession to ExportManager's expected format
+        guard let session = createExportSession() else {
+            showExportError(.invalidSession)
+            return
+        }
         
-        savePanel.begin { response in
-            if response == .OK, let url = savePanel.url {
-                try? content.write(to: url, atomically: true, encoding: .utf8)
+        // Show save dialog
+        let savePanel = createSavePanel(for: format)
+        savePanel.nameFieldStringValue = exportManager.suggestedFilename(for: session, format: format)
+        
+        savePanel.begin { [weak self] response in
+            guard let self = self, response == .OK, let url = savePanel.url else { return }
+            
+            Task { @MainActor in
+                await self.performExport(session: session, format: format, to: url)
             }
+        }
+    }
+    
+    private func createSavePanel(for format: ExportManager.ExportFormat) -> NSSavePanel {
+        let savePanel = NSSavePanel()
+        savePanel.title = "Export Transcription as \(format.displayName)"
+        
+        // Set allowed content types based on format
+        switch format {
+        case .text:
+            savePanel.allowedContentTypes = [.plainText]
+        case .markdown:
+            if #available(macOS 11.0, *) {
+                savePanel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+            } else {
+                savePanel.allowedFileTypes = ["md"]
+            }
+        case .docx:
+            if #available(macOS 11.0, *) {
+                savePanel.allowedContentTypes = [UTType(filenameExtension: "docx") ?? .data]
+            } else {
+                savePanel.allowedFileTypes = ["docx"]
+            }
+        case .pdf:
+            savePanel.allowedContentTypes = [.pdf]
+        case .srt:
+            if #available(macOS 11.0, *) {
+                savePanel.allowedContentTypes = [UTType(filenameExtension: "srt") ?? .plainText]
+            } else {
+                savePanel.allowedFileTypes = ["srt"]
+            }
+        }
+        
+        return savePanel
+    }
+    
+    private func createExportSession() -> ExportTranscriptionSession? {
+        // Convert from ViewModel's session format to ExportManager's expected format
+        let metadata = ExportSessionMetadata(
+            title: "Transcription Session",
+            speaker: nil,
+            location: nil,
+            tags: [],
+            customFields: [:]
+        )
+        
+        // Create basic segments from the transcribed text
+        // This is a simplified implementation - in production you'd want proper segmentation
+        let segments = createSegmentsFromText(viewModel.transcribedText)
+        
+        return ExportTranscriptionSession(
+            id: UUID(),
+            text: viewModel.transcribedText,
+            metadata: metadata,
+            segments: segments,
+            language: ExportLanguage.english,
+            createdAt: viewModel.currentSession?.startTime ?? Date(),
+            updatedAt: Date()
+        )
+    }
+    
+    private func createSegmentsFromText(_ text: String) -> [ExportTranscriptionSegment] {
+        // Simple segmentation by sentences or paragraphs
+        let sentences = text.components(separatedBy: CharacterSet(charactersIn: ".!?\n"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        var segments: [ExportTranscriptionSegment] = []
+        var currentTime: TimeInterval = 0
+        
+        for sentence in sentences {
+            let duration = TimeInterval(sentence.count) * 0.1 // Rough estimation
+            let segment = ExportTranscriptionSegment(
+                id: UUID(),
+                text: sentence,
+                startTime: currentTime,
+                endTime: currentTime + duration,
+                confidence: viewModel.averageConfidence,
+                words: createWordsFromSentence(sentence, startTime: currentTime, duration: duration)
+            )
+            segments.append(segment)
+            currentTime += duration
+        }
+        
+        return segments
+    }
+    
+    private func createWordsFromSentence(_ sentence: String, startTime: TimeInterval, duration: TimeInterval) -> [ExportWordTiming] {
+        let words = sentence.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        guard !words.isEmpty else { return [] }
+        
+        let wordDuration = duration / Double(words.count)
+        var wordTimings: [ExportWordTiming] = []
+        
+        for (index, word) in words.enumerated() {
+            let wordStartTime = startTime + (Double(index) * wordDuration)
+            let wordEndTime = wordStartTime + wordDuration
+            
+            let wordTiming = ExportWordTiming(
+                word: word,
+                startTime: wordStartTime,
+                endTime: wordEndTime,
+                confidence: viewModel.averageConfidence
+            )
+            wordTimings.append(wordTiming)
+        }
+        
+        return wordTimings
+    }
+    
+    @MainActor
+    private func performExport(session: ExportTranscriptionSession, format: ExportManager.ExportFormat, to url: URL) async {
+        isExporting = true
+        exportProgress = 0.0
+        exportCurrentStep = "Starting export..."
+        
+        let progressDelegate = ExportProgressHandler { [weak self] progress, step in
+            Task { @MainActor in
+                self?.exportProgress = progress
+                self?.exportCurrentStep = step
+            }
+        } onError: { [weak self] error in
+            Task { @MainActor in
+                self?.showExportError(error)
+                self?.isExporting = false
+            }
+        } onComplete: { [weak self] in
+            Task { @MainActor in
+                self?.isExporting = false
+                self?.exportProgress = 1.0
+                self?.exportCurrentStep = "Export completed successfully!"
+                
+                // Show success notification
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    if let self = self {
+                        self.exportCurrentStep = ""
+                        self.exportProgress = 0.0
+                    }
+                }
+            }
+        }
+        
+        do {
+            try await exportManager.exportToFile(
+                session: session,
+                format: format,
+                fileURL: url,
+                configuration: createExportConfiguration(for: format),
+                progressDelegate: progressDelegate
+            )
+        } catch let error as ExportError {
+            showExportError(error)
+            isExporting = false
+        } catch {
+            showExportError(.encodingError(error))
+            isExporting = false
+        }
+    }
+    
+    private func createExportConfiguration(for format: ExportManager.ExportFormat) -> ExportConfiguration? {
+        switch format {
+        case .text:
+            return TextExportConfiguration(
+                includeMetadata: true,
+                includeTimestamps: false,
+                includeConfidenceScores: false,
+                lineBreaksBetweenSegments: true
+            )
+        case .markdown:
+            return MarkdownExportConfiguration(
+                includeMetadata: true,
+                includeTimestamps: false,
+                includeConfidenceScores: false,
+                includeTableOfContents: false,
+                segmentHeaderLevel: 2
+            )
+        case .docx:
+            return DocxExportConfiguration(
+                includeMetadata: true,
+                includeTimestamps: false,
+                includeConfidenceScores: false,
+                fontSize: 12.0,
+                fontName: "Helvetica",
+                includePageNumbers: true
+            )
+        case .pdf:
+            return PDFExportConfiguration(
+                includeMetadata: true,
+                includeTimestamps: false,
+                includeConfidenceScores: false,
+                pageSize: .letter,
+                margins: PDFExportConfiguration.PDFMargins(),
+                fontSize: 12.0,
+                fontName: "Helvetica",
+                includePageNumbers: true,
+                includeHeader: true
+            )
+        case .srt:
+            return SRTExportConfiguration(
+                maxCharactersPerLine: 42,
+                maxLinesPerSubtitle: 2,
+                minimumDuration: 1.0
+            )
+        }
+    }
+    
+    private func showExportError(_ error: ExportError) {
+        exportError = error
+        showingExportError = true
+    }
+    
+    // MARK: - Export Progress Overlay
+    
+    private var exportProgressOverlay: some View {
+        ZStack {
+            // Semi-transparent background
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+            
+            // Progress card
+            VStack(spacing: 16) {
+                // Icon
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 40))
+                    .foregroundColor(.accentColor)
+                
+                // Title
+                Text("Exporting Transcription")
+                    .font(.headline)
+                
+                // Progress bar
+                ProgressView(value: exportProgress)
+                    .frame(width: 250)
+                
+                // Current step
+                Text(exportCurrentStep)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                
+                // Cancel button (optional)
+                Button("Cancel") {
+                    exportManager.cancelAllExports()
+                    isExporting = false
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+            }
+            .padding(24)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .shadow(radius: 10)
         }
     }
     
@@ -507,4 +792,38 @@ struct MockSession: Identifiable {
     let title: String
     let duration: TimeInterval
     let content: String
+}
+
+// MARK: - Export Progress Handler
+
+class ExportProgressHandler: ExportProgressDelegate {
+    private let onProgress: (Double, String) -> Void
+    private let onError: (ExportError) -> Void
+    private let onComplete: () -> Void
+    
+    init(
+        onProgress: @escaping (Double, String) -> Void,
+        onError: @escaping (ExportError) -> Void,
+        onComplete: @escaping () -> Void
+    ) {
+        self.onProgress = onProgress
+        self.onError = onError
+        self.onComplete = onComplete
+    }
+    
+    func exportDidStart() {
+        onProgress(0.0, "Starting export...")
+    }
+    
+    func exportDidUpdateProgress(_ progress: Double, currentStep: String) {
+        onProgress(progress, currentStep)
+    }
+    
+    func exportDidComplete(result: ExportResult) {
+        onComplete()
+    }
+    
+    func exportDidFail(error: ExportError) {
+        onError(error)
+    }
 }

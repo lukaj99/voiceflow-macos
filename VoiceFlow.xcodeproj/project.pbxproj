@@ -24,6 +24,13 @@
 		E501A12B2B4A1C5000123456 /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A12A2B4A1C5000123456 /* PerformanceTests.swift */; };
 		E501A12D2B4A1D0000123456 /* HotKey in Frameworks */ = {isa = PBXBuildFile; productRef = E501A12C2B4A1D0000123456 /* HotKey */; };
 		E501A12F2B4A1D1000123456 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = E501A12E2B4A1D1000123456 /* KeychainAccess */; };
+		E501A13B2B4A2A0000123456 /* DocxExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A13A2B4A2A0000123456 /* DocxExporter.swift */; };
+		E501A13D2B4A2A1000123456 /* ExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A13C2B4A2A1000123456 /* ExportManager.swift */; };
+		E501A13F2B4A2A2000123456 /* ExportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A13E2B4A2A2000123456 /* ExportModels.swift */; };
+		E501A1412B4A2A3000123456 /* MarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1402B4A2A3000123456 /* MarkdownExporter.swift */; };
+		E501A1432B4A2A4000123456 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1422B4A2A4000123456 /* PDFExporter.swift */; };
+		E501A1452B4A2A5000123456 /* SRTExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1442B4A2A5000123456 /* SRTExporter.swift */; };
+		E501A1472B4A2A6000123456 /* TextExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E501A1462B4A2A6000123456 /* TextExporter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +63,13 @@
 		E501A1282B4A1C4000123456 /* FloatingWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWidgetTests.swift; sourceTree = "<group>"; };
 		E501A12A2B4A1C5000123456 /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		E501A1302B4A1D2000123456 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E501A13A2B4A2A0000123456 /* DocxExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocxExporter.swift; sourceTree = "<group>"; };
+		E501A13C2B4A2A1000123456 /* ExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportManager.swift; sourceTree = "<group>"; };
+		E501A13E2B4A2A2000123456 /* ExportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportModels.swift; sourceTree = "<group>"; };
+		E501A1402B4A2A3000123456 /* MarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExporter.swift; sourceTree = "<group>"; };
+		E501A1422B4A2A4000123456 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
+		E501A1442B4A2A5000123456 /* SRTExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SRTExporter.swift; sourceTree = "<group>"; };
+		E501A1462B4A2A6000123456 /* TextExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextExporter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +117,7 @@
 				E501A1312B4A1E0000123456 /* App */,
 				E501A1322B4A1E1000123456 /* Core */,
 				E501A1332B4A1E2000123456 /* Features */,
+				E501A1482B4A2A7000123456 /* Services */,
 				E501A1342B4A1E3000123456 /* Resources */,
 				E501A1072B4A1B3600123456 /* VoiceFlow.entitlements */,
 			);
@@ -205,6 +220,28 @@
 				E501A11B2B4A1BE000123456 /* TranscriptionViewModel.swift */,
 			);
 			path = Transcription;
+			sourceTree = "<group>";
+		};
+		E501A1482B4A2A7000123456 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				E501A1492B4A2A8000123456 /* Export */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		E501A1492B4A2A8000123456 /* Export */ = {
+			isa = PBXGroup;
+			children = (
+				E501A13A2B4A2A0000123456 /* DocxExporter.swift */,
+				E501A13C2B4A2A1000123456 /* ExportManager.swift */,
+				E501A13E2B4A2A2000123456 /* ExportModels.swift */,
+				E501A1402B4A2A3000123456 /* MarkdownExporter.swift */,
+				E501A1422B4A2A4000123456 /* PDFExporter.swift */,
+				E501A1442B4A2A5000123456 /* SRTExporter.swift */,
+				E501A1462B4A2A6000123456 /* TextExporter.swift */,
+			);
+			path = Export;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -323,6 +360,13 @@
 				E501A1182B4A1BC000123456 /* FloatingWidgetWindow.swift in Sources */,
 				E501A11A2B4A1BD000123456 /* FloatingWidgetController.swift in Sources */,
 				E501A11C2B4A1BE000123456 /* TranscriptionViewModel.swift in Sources */,
+				E501A13B2B4A2A0000123456 /* DocxExporter.swift in Sources */,
+				E501A13D2B4A2A1000123456 /* ExportManager.swift in Sources */,
+				E501A13F2B4A2A2000123456 /* ExportModels.swift in Sources */,
+				E501A1412B4A2A3000123456 /* MarkdownExporter.swift in Sources */,
+				E501A1432B4A2A4000123456 /* PDFExporter.swift in Sources */,
+				E501A1452B4A2A5000123456 /* SRTExporter.swift in Sources */,
+				E501A1472B4A2A6000123456 /* TextExporter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
