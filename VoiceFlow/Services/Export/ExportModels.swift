@@ -3,26 +3,7 @@ import CoreGraphics
 
 // MARK: - Export Models and Protocols
 
-// Note: TranscriptionSession is imported from TranscriptionModels.swift
-
-/// Represents a transcription segment with timing information
-public struct TranscriptionSegment: Sendable {
-    public let text: String
-    public let startTime: TimeInterval
-    public let endTime: TimeInterval
-    public let confidence: Double
-    
-    public var duration: TimeInterval {
-        endTime - startTime
-    }
-    
-    public init(text: String, startTime: TimeInterval, endTime: TimeInterval, confidence: Double) {
-        self.text = text
-        self.startTime = startTime
-        self.endTime = endTime
-        self.confidence = confidence
-    }
-}
+// Note: TranscriptionSession and TranscriptionSegment are imported from TranscriptionModels.swift
 
 /// Metadata associated with a transcription session
 public struct SessionMetadata: Sendable {
@@ -144,43 +125,71 @@ public struct ExportConfiguration: Sendable {
 }
 
 /// Result of an export operation
-public struct ExportResult: Sendable {
-    public let success: Bool
-    public let outputURL: URL?
-    public let error: ExportError?
-    public let fileSize: Int?
-    public let exportDuration: TimeInterval
+public enum ExportResult: Sendable {
+    case data(Data)
+    case fileURL(URL)
+    case error(ExportError)
     
-    public init(
-        success: Bool,
-        outputURL: URL? = nil,
-        error: ExportError? = nil,
-        fileSize: Int? = nil,
-        exportDuration: TimeInterval
-    ) {
-        self.success = success
-        self.outputURL = outputURL
-        self.error = error
-        self.fileSize = fileSize
-        self.exportDuration = exportDuration
+    public var success: Bool {
+        switch self {
+        case .data, .fileURL:
+            return true
+        case .error:
+            return false
+        }
+    }
+    
+    public var outputURL: URL? {
+        switch self {
+        case .fileURL(let url):
+            return url
+        default:
+            return nil
+        }
+    }
+    
+    public var error: ExportError? {
+        switch self {
+        case .error(let error):
+            return error
+        default:
+            return nil
+        }
+    }
+    
+    public var fileSize: Int? {
+        switch self {
+        case .data(let data):
+            return data.count
+        default:
+            return nil
+        }
+    }
+    
+    public var exportDuration: TimeInterval {
+        return 0 // Simplified for now
     }
 }
 
 /// Errors that can occur during export
 public enum ExportError: Error, LocalizedError, Sendable {
     case invalidFormat
-    case fileWriteError(String)
+    case fileWriteError(URL, Error)
     case templateError(String)
     case unsupportedConfiguration
     case insufficientData
     case permissionDenied
+    case cancelled
+    case encodingError(Error)
+    case invalidSession
+    case configurationError(String)
     
     public var errorDescription: String? {
         switch self {
         case .invalidFormat:
             return "The export format is not supported."
-        case .fileWriteError(let details):
-            return "Failed to write file: \(details)"
+        case .fileWriteError(let url, let error):
+            return "Failed to write file to \(url.path): \(error.localizedDescription)"
         case .templateError(let details):
             return "Template processing error: \(details)"
         case .unsupportedConfiguration:
@@ -189,8 +198,36 @@ public enum ExportError: Error, LocalizedError, Sendable {
             return "Insufficient data to generate export."
         case .permissionDenied:
             return "Permission denied to write to the specified location."
+        case .cancelled:
+            return "Export operation was cancelled."
+        case .encodingError(let error):
+            return "Encoding error: \(error.localizedDescription)"
+        case .invalidSession:
+            return "Invalid transcription session."
+        case .configurationError(let details):
+            return "Configuration error: \(details)"
         }
     }
+}
+
+/// Base protocol for exporters used by ExportManager
+public protocol Exporter: Sendable {
+    associatedtype Configuration
+    
+    func export(
+        session: TranscriptionSession,
+        configuration: Configuration,
+        progressDelegate: ExportProgressDelegate?
+    ) async throws -> ExportResult
+    
+    func exportToFile(
+        session: TranscriptionSession,
+        configuration: Configuration,
+        outputURL: URL,
+        progressDelegate: ExportProgressDelegate?
+    ) async throws -> ExportResult
+    
+    func cancel()
 }
 
 /// Protocol for export handlers
@@ -229,9 +266,12 @@ public struct ExportProgress: Sendable {
 /// Protocol for tracking export progress
 public protocol ExportProgressDelegate: Sendable {
     func exportDidStart(for format: ExportFormat)
+    func exportDidStart()
     func exportDidProgress(_ progress: ExportProgress)
     func exportDidComplete(_ result: ExportResult)
+    func exportDidComplete(result: ExportResult)
     func exportDidFail(_ error: ExportError)
+    func exportDidUpdateProgress(_ progress: Double, currentStep: String)
 }
 
 /// PDF-specific export configuration
@@ -291,4 +331,110 @@ public struct PDFExportConfiguration: Sendable {
     }
     
     public static let `default` = PDFExportConfiguration()
+}
+
+/// Text-specific export configuration
+public struct TextExportConfiguration: Sendable {
+    public let includeMetadata: Bool
+    public let customHeader: String?
+    public let customFooter: String?
+    public let lineEnding: LineEnding
+    
+    public enum LineEnding: String, CaseIterable, Sendable {
+        case unix = "\n"
+        case windows = "\r\n"
+        case mac = "\r"
+    }
+    
+    public init(
+        includeMetadata: Bool = true,
+        customHeader: String? = nil,
+        customFooter: String? = nil,
+        lineEnding: LineEnding = .unix
+    ) {
+        self.includeMetadata = includeMetadata
+        self.customHeader = customHeader
+        self.customFooter = customFooter
+        self.lineEnding = lineEnding
+    }
+    
+    public static let `default` = TextExportConfiguration()
+}
+
+/// Markdown-specific export configuration
+public struct MarkdownExportConfiguration: Sendable {
+    public let includeMetadata: Bool
+    public let includeTOC: Bool
+    public let customHeader: String?
+    public let customFooter: String?
+    public let enableSyntaxHighlighting: Bool
+    
+    public init(
+        includeMetadata: Bool = true,
+        includeTOC: Bool = false,
+        customHeader: String? = nil,
+        customFooter: String? = nil,
+        enableSyntaxHighlighting: Bool = true
+    ) {
+        self.includeMetadata = includeMetadata
+        self.includeTOC = includeTOC
+        self.customHeader = customHeader
+        self.customFooter = customFooter
+        self.enableSyntaxHighlighting = enableSyntaxHighlighting
+    }
+    
+    public static let `default` = MarkdownExportConfiguration()
+}
+
+/// DOCX-specific export configuration
+public struct DocxExportConfiguration: Sendable {
+    public let includeMetadata: Bool
+    public let fontSize: Double
+    public let fontName: String
+    public let includeHeader: Bool
+    public let includeFooter: Bool
+    public let customHeader: String?
+    public let customFooter: String?
+    
+    public init(
+        includeMetadata: Bool = true,
+        fontSize: Double = 12,
+        fontName: String = "Calibri",
+        includeHeader: Bool = true,
+        includeFooter: Bool = true,
+        customHeader: String? = nil,
+        customFooter: String? = nil
+    ) {
+        self.includeMetadata = includeMetadata
+        self.fontSize = fontSize
+        self.fontName = fontName
+        self.includeHeader = includeHeader
+        self.includeFooter = includeFooter
+        self.customHeader = customHeader
+        self.customFooter = customFooter
+    }
+    
+    public static let `default` = DocxExportConfiguration()
+}
+
+/// SRT-specific export configuration
+public struct SRTExportConfiguration: Sendable {
+    public let maxCharsPerLine: Int
+    public let maxLinesPerSubtitle: Int
+    public let minSubtitleDuration: TimeInterval
+    public let maxSubtitleDuration: TimeInterval
+    
+    public init(
+        maxCharsPerLine: Int = 50,
+        maxLinesPerSubtitle: Int = 2,
+        minSubtitleDuration: TimeInterval = 1.0,
+        maxSubtitleDuration: TimeInterval = 7.0
+    ) {
+        self.maxCharsPerLine = maxCharsPerLine
+        self.maxLinesPerSubtitle = maxLinesPerSubtitle
+        self.minSubtitleDuration = minSubtitleDuration
+        self.maxSubtitleDuration = maxSubtitleDuration
+    }
+    
+    public static let `default` = SRTExportConfiguration()
 }

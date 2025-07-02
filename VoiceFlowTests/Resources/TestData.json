@@ -1,0 +1,51 @@
+{
+  "testTranscriptions": [
+    {
+      "id": "test-1",
+      "text": "This is a test transcription for unit testing purposes.",
+      "duration": 5.2,
+      "confidence": 0.95,
+      "language": "en-US"
+    },
+    {
+      "id": "test-2", 
+      "text": "Another sample transcription with multiple sentences. This one is longer and contains more complex punctuation!",
+      "duration": 8.7,
+      "confidence": 0.92,
+      "language": "en-US"
+    },
+    {
+      "id": "test-3",
+      "text": "A brief test.",
+      "duration": 1.5,
+      "confidence": 0.98,
+      "language": "en-US"
+    }
+  ],
+  "testSettings": {
+    "audioQuality": "high",
+    "continuousListening": false,
+    "autoSave": true,
+    "theme": "dark"
+  },
+  "testSegments": [
+    {
+      "text": "First segment",
+      "startTime": 0.0,
+      "endTime": 2.0,
+      "confidence": 0.94
+    },
+    {
+      "text": "Second segment", 
+      "startTime": 2.0,
+      "endTime": 4.5,
+      "confidence": 0.91
+    },
+    {
+      "text": "Final segment",
+      "startTime": 4.5,
+      "endTime": 6.0,
+      "confidence": 0.96
+    }
+  ]
+}

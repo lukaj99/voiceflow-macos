@@ -24,8 +24,12 @@ public final class AudioEngineManager: ObservableObject {
         audioLevelSubject.eraseToAnyPublisher()
     }
     
+    // Optimized audio processing
+    private let optimizedProcessor: OptimizedAudioProcessor
+    
     // Callbacks
     public var onBufferProcessed: ((AVAudioPCMBuffer) -> Void)?
+    public var onAudioLevelUpdated: ((Float) -> Void)?
     
     // MARK: - Initialization
     
@@ -36,6 +40,12 @@ public final class AudioEngineManager: ObservableObject {
             channels: 1,
             interleaved: false
         )!
+        
+        // Initialize optimized processor
+        self.optimizedProcessor = OptimizedAudioProcessor(
+            format: audioFormat,
+            frameCapacity: bufferSize
+        )
     }
     
     // MARK: - Public Methods
@@ -66,14 +76,17 @@ public final class AudioEngineManager: ObservableObject {
         // Remove existing tap if any
         inputNode.removeTap(onBus: 0)
         
-        // Install new tap
+        // Install optimized tap that eliminates Task creation per buffer
         inputNode.installTap(
             onBus: 0,
             bufferSize: bufferSize,
             format: audioFormat
         ) { [weak self] buffer, _ in
-            Task { @MainActor [weak self] in
-                self?.processAudioBuffer(buffer)
+            // Process buffer without creating Task (eliminates critical bottleneck)
+            self?.optimizedProcessor.processBuffer(buffer) { level, processedBuffer in
+                Task { @MainActor [weak self] in
+                    self?.handleProcessedAudio(level: level, buffer: processedBuffer)
+                }
             }
         }
         
@@ -97,33 +110,29 @@ public final class AudioEngineManager: ObservableObject {
     
     // MARK: - Private Methods
     
-    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
-        // Calculate audio level
-        let level = calculateAudioLevel(from: buffer)
+    private func handleProcessedAudio(level: Float, buffer: AVAudioPCMBuffer) {
+        // Update audio level from optimized processor
         currentAudioLevel = level
         audioLevelSubject.send(level)
         
-        // Forward buffer to callback
+        // Forward processed buffer to callback
         onBufferProcessed?(buffer)
+        onAudioLevelUpdated?(level)
     }
     
     public func calculateAudioLevel(from buffer: AVAudioPCMBuffer) -> Float {
-        guard let channelData = buffer.floatChannelData else { return 0 }
-        
-        let channelDataPointer = channelData[0]
-        let frameLength = Int(buffer.frameLength)
-        
-        // Calculate RMS (Root Mean Square)
-        var rms: Float = 0
-        vDSP_rmsqv(channelDataPointer, 1, &rms, vDSP_Length(frameLength))
-        
-        // Convert to decibels and normalize to 0-1 range
-        let avgPower = 20 * log10(rms)
-        let minDb: Float = -60
-        let maxDb: Float = 0
-        
-        let normalizedPower = (avgPower - minDb) / (maxDb - minDb)
-        return max(0, min(1, normalizedPower))
+        // Delegate to optimized processor for consistent calculations
+        return optimizedProcessor.calculateAudioLevel(from: buffer)
+    }
+    
+    // MARK: - Performance Monitoring
+    
+    public func getBufferPoolMetrics() -> AudioBufferPool.PoolMetrics {
+        return optimizedProcessor.getBufferPoolMetrics()
+    }
+    
+    public func resetPerformanceMetrics() {
+        optimizedProcessor.resetPerformanceMetrics()
     }
     
     private func checkMicrophonePermission() async -> Bool {

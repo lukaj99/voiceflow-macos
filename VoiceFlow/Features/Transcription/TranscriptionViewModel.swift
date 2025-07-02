@@ -24,7 +24,7 @@ public class TranscriptionViewModel: ObservableObject {
     @Published public var averageConfidence: Double = 0
     
     private var sessionStartTime: Date?
-    private var sessionTimer: Timer?
+    private var sessionTimerTask: Task<Void, Never>?
     
     // MARK: - Initialization
     
@@ -51,9 +51,11 @@ public class TranscriptionViewModel: ObservableObject {
     private func setupBindings() {
         // Transcription updates
         transcriptionEngine?.transcriptionPublisher
-            .receive(on: DispatchQueue.main)
+            .receive(on: RunLoop.main)
             .sink { [weak self] update in
-                self?.handleTranscriptionUpdate(update)
+                Task { @MainActor [weak self] in
+                    self?.handleTranscriptionUpdate(update)
+                }
             }
             .store(in: &cancellables)
     }
@@ -99,8 +101,8 @@ public class TranscriptionViewModel: ObservableObject {
         currentAudioLevel = 0
         
         // Stop timer
-        sessionTimer?.invalidate()
-        sessionTimer = nil
+        sessionTimerTask?.cancel()
+        sessionTimerTask = nil
         
         // Finalize session
         if var session = currentSession {
@@ -118,7 +120,8 @@ public class TranscriptionViewModel: ObservableObject {
     
     public func pauseTranscription() async {
         await transcriptionEngine?.pauseTranscription()
-        sessionTimer?.invalidate()
+        sessionTimerTask?.cancel()
+        sessionTimerTask = nil
     }
     
     public func resumeTranscription() async {
@@ -209,12 +212,16 @@ public class TranscriptionViewModel: ObservableObject {
     }
     
     private func startSessionTimer() {
-        sessionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self,
-                  let startTime = self.sessionStartTime else { return }
-            
-            self.sessionDuration = Date().timeIntervalSince(startTime)
+        sessionTimerTask = Task {
+            while !Task.isCancelled, let startTime = sessionStartTime {
+                await updateSessionDuration(from: startTime)
+                try? await Task.sleep(for: .seconds(1))
+            }
         }
+    }
+    
+    private func updateSessionDuration(from startTime: Date) async {
+        sessionDuration = Date().timeIntervalSince(startTime)
     }
     
     private func saveSession(_ session: TranscriptionSession) async {

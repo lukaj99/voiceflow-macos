@@ -6,16 +6,16 @@ let package = Package(
     platforms: [
         .macOS(.v14)
     ],
-    dependencies: [
-        .package(url: "https://github.com/soffes/HotKey", from: "0.2.0"),
-        .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0"),
-        .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0")
-    ],
     products: [
         .executable(
             name: "VoiceFlow",
             targets: ["VoiceFlow"]
         )
+    ],
+    dependencies: [
+        .package(url: "https://github.com/soffes/HotKey", from: "0.2.0"),
+        .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0"),
+        .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0")
     ],
     targets: [
         .executableTarget(
@@ -65,6 +65,31 @@ let package = Package(
                 .linkedFramework("Speech"),
                 .linkedFramework("AVFoundation"),
                 .linkedFramework("AppKit")
+            ]
+        ),
+        .testTarget(
+            name: "VoiceFlowTests",
+            dependencies: [
+                "VoiceFlow",
+                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
+            ],
+            path: "VoiceFlowTests",
+            resources: [
+                .copy("Resources")
+            ],
+            swiftSettings: [
+                .enableUpcomingFeature("BareSlashRegexLiterals"),
+                .enableUpcomingFeature("ConciseMagicFile"),
+                .enableUpcomingFeature("ForwardTrailingClosures"),
+                .enableUpcomingFeature("ImportObjcForwardDeclarations"),
+                .enableUpcomingFeature("DisableOutwardActorInference"),
+                .enableUpcomingFeature("ExistentialAny"),
+                .enableUpcomingFeature("DeprecateApplicationMain"),
+                .enableUpcomingFeature("GlobalConcurrency"),
+                .enableUpcomingFeature("IsolatedDefaultValues"),
+                .define("SWIFT_CONCURRENCY_STRICT"),
+                .define("VOICEFLOW_TESTING"),
+                .unsafeFlags(["-Xfrontend", "-enable-actor-data-race-checks"])
             ]
         )
     ]

@@ -1,8 +1,10 @@
 import Foundation
 import os.log
 import QuartzCore
+import Combine
 
-public final class PerformanceMonitor: @unchecked Sendable {
+@MainActor
+public final class PerformanceMonitor: ObservableObject {
     // MARK: - Singleton
     
     public static let shared = PerformanceMonitor()
@@ -40,7 +42,6 @@ public final class PerformanceMonitor: @unchecked Sendable {
     // MARK: - Metrics Storage
     
     private var latencyMeasurements: [TimeInterval] = []
-    private let measurementQueue = DispatchQueue(label: "com.voiceflow.performance", qos: .utility)
     private let maxMeasurements = 1000
     
     // MARK: - Current Metrics
@@ -58,21 +59,22 @@ public final class PerformanceMonitor: @unchecked Sendable {
     // MARK: - Monitoring
     
     private func startMonitoring() {
-        // Start periodic monitoring using MainActor-isolated Task scheduling
-        Task { @MainActor in
-            while true {
-                updateMetrics()
-                try? await Task.sleep(for: .seconds(1))
-            }
+        // Start periodic monitoring using Task-based scheduling
+        Task {
+            await startMonitoringLoop()
         }
     }
     
-    @MainActor
-    private func updateMetrics() {
-        Task {
-            await updateMemoryUsage()
-            await updateCPUUsage()
+    private func startMonitoringLoop() async {
+        while !Task.isCancelled {
+            await updateMetrics()
+            try? await Task.sleep(for: .seconds(1))
         }
+    }
+    
+    private func updateMetrics() async {
+        await updateMemoryUsage()
+        await updateCPUUsage()
     }
     
     // MARK: - Latency Measurement
@@ -87,22 +89,18 @@ public final class PerformanceMonitor: @unchecked Sendable {
     }
     
     public func recordLatency(_ latency: TimeInterval) {
-        measurementQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            self.latencyMeasurements.append(latency)
-            
-            // Keep only recent measurements
-            if self.latencyMeasurements.count > self.maxMeasurements {
-                self.latencyMeasurements.removeFirst()
-            }
-            
-            self.currentLatency = latency
-            
-            // Check against requirements
-            if latency > LatencyRequirements.transcriptionP95 {
-                os_log("Latency exceeds P95 target: %.2fms", log: self.performanceLog, type: .error, latency * 1000)
-            }
+        latencyMeasurements.append(latency)
+        
+        // Keep only recent measurements
+        if latencyMeasurements.count > maxMeasurements {
+            latencyMeasurements.removeFirst()
+        }
+        
+        currentLatency = latency
+        
+        // Check against requirements
+        if latency > LatencyRequirements.transcriptionP95 {
+            os_log("Latency exceeds P95 target: %.2fms", log: performanceLog, type: .error, latency * 1000)
         }
     }
     
@@ -123,9 +121,7 @@ public final class PerformanceMonitor: @unchecked Sendable {
         
         if result == KERN_SUCCESS {
             let memoryUsage = Int(info.resident_size)
-            await MainActor.run {
-                currentMemoryUsage = memoryUsage
-            }
+            currentMemoryUsage = memoryUsage
             
             if memoryUsage > MemoryRequirements.warningThreshold {
                 os_log("Memory usage exceeds warning threshold: %d MB", log: performanceLog, type: .error, memoryUsage / 1_000_000)
@@ -154,9 +150,7 @@ public final class PerformanceMonitor: @unchecked Sendable {
             let cpuUsage = Double(info.user_time.microseconds + info.system_time.microseconds) / 1_000_000.0
             let normalizedUsage = min(cpuUsage, 1.0)
             
-            await MainActor.run {
-                currentCPUUsage = normalizedUsage
-            }
+            currentCPUUsage = normalizedUsage
             
             if normalizedUsage > CPURequirements.peakUsage {
                 os_log("CPU usage exceeds peak target: %.1f%%", log: performanceLog, type: .error, normalizedUsage * 100)
@@ -167,27 +161,25 @@ public final class PerformanceMonitor: @unchecked Sendable {
     // MARK: - Latency Statistics
     
     public func latencyStatistics() -> LatencyMeasurement {
-        measurementQueue.sync {
-            guard !latencyMeasurements.isEmpty else {
-                return LatencyMeasurement(p50: 0, p95: 0, p99: 0, average: 0, count: 0)
-            }
-            
-            let sorted = latencyMeasurements.sorted()
-            let count = sorted.count
-            
-            let p50 = sorted[Int(Double(count) * 0.5)]
-            let p95 = sorted[Int(Double(count) * 0.95)]
-            let p99 = sorted[Int(Double(count) * 0.99)]
-            let average = sorted.reduce(0, +) / Double(count)
-            
-            return LatencyMeasurement(
-                p50: p50,
-                p95: p95,
-                p99: p99,
-                average: average,
-                count: count
-            )
+        guard !latencyMeasurements.isEmpty else {
+            return LatencyMeasurement(p50: 0, p95: 0, p99: 0, average: 0, count: 0)
         }
+        
+        let sorted = latencyMeasurements.sorted()
+        let count = sorted.count
+        
+        let p50 = sorted[Int(Double(count) * 0.5)]
+        let p95 = sorted[Int(Double(count) * 0.95)]
+        let p99 = sorted[Int(Double(count) * 0.99)]
+        let average = sorted.reduce(0, +) / Double(count)
+        
+        return LatencyMeasurement(
+            p50: p50,
+            p95: p95,
+            p99: p99,
+            average: average,
+            count: count
+        )
     }
     
     // MARK: - Performance Report
@@ -214,7 +206,7 @@ public final class PerformanceMonitor: @unchecked Sendable {
     
     // MARK: - Optimization Helpers
     
-    public func profileOperation<T>(_ name: String, operation: () async throws -> T) async rethrows -> T {
+    public func profileOperation<T: Sendable>(_ name: String, operation: @Sendable () async throws -> T) async rethrows -> T {
         let start = CACurrentMediaTime()
         
         defer {

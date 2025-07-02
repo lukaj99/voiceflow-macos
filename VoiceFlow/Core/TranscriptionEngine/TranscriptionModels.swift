@@ -91,6 +91,25 @@ public enum AppContext: Equatable, Sendable {
 
 // MARK: - Storage Models
 
+/// Represents a transcription segment with timing information
+public struct TranscriptionSegment: Codable, Sendable {
+    public let text: String
+    public let startTime: TimeInterval
+    public let endTime: TimeInterval
+    public let confidence: Double
+    
+    public var duration: TimeInterval {
+        endTime - startTime
+    }
+    
+    public init(text: String, startTime: TimeInterval, endTime: TimeInterval, confidence: Double) {
+        self.text = text
+        self.startTime = startTime
+        self.endTime = endTime
+        self.confidence = confidence
+    }
+}
+
 public struct TranscriptionSession: Codable, Identifiable, Sendable {
     public let id: UUID
     public let startTime: Date
@@ -101,6 +120,9 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
     public let context: String // Serialized AppContext
     public let transcription: String
     public let metadata: Metadata
+    public let segments: [TranscriptionSegment]
+    public let createdAt: Date
+    public let language: Language
     
     public struct Metadata: Codable, Sendable {
         public let appName: String?
@@ -108,19 +130,40 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
         public let customVocabularyHits: Int
         public let correctionsApplied: Int
         public let privacyMode: PrivacyMode
+        public let title: String?
+        public let tags: [String]
+        public let language: String?
+        public let contextType: String?
+        public let privacy: String?
+        public let speaker: String?
+        public let location: String?
         
         public init(
             appName: String? = nil,
             appBundleID: String? = nil,
             customVocabularyHits: Int = 0,
             correctionsApplied: Int = 0,
-            privacyMode: PrivacyMode = .balanced
+            privacyMode: PrivacyMode = .balanced,
+            title: String? = nil,
+            tags: [String] = [],
+            language: String? = nil,
+            contextType: String? = nil,
+            privacy: String? = nil,
+            speaker: String? = nil,
+            location: String? = nil
         ) {
             self.appName = appName
             self.appBundleID = appBundleID
             self.customVocabularyHits = customVocabularyHits
             self.correctionsApplied = correctionsApplied
             self.privacyMode = privacyMode
+            self.title = title
+            self.tags = tags
+            self.language = language
+            self.contextType = contextType
+            self.privacy = privacy
+            self.speaker = speaker
+            self.location = location
         }
     }
     
@@ -133,7 +176,10 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
         averageConfidence: Double = 0,
         context: String = "general",
         transcription: String = "",
-        metadata: Metadata = Metadata()
+        metadata: Metadata = Metadata(),
+        segments: [TranscriptionSegment] = [],
+        createdAt: Date = Date(),
+        language: Language = .english
     ) {
         self.id = id
         self.startTime = startTime
@@ -144,6 +190,9 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
         self.context = context
         self.transcription = transcription
         self.metadata = metadata
+        self.segments = segments
+        self.createdAt = createdAt
+        self.language = language
     }
 }
 
@@ -208,4 +257,20 @@ public struct TranscriptionMetrics: Sendable {
 @globalActor
 public actor AudioProcessingActor {
     public static let shared = AudioProcessingActor()
+}
+
+// MARK: - Extensions
+
+extension TimeInterval {
+    public var humanReadable: String {
+        let hours = Int(self) / 3600
+        let minutes = Int(self) % 3600 / 60
+        let seconds = Int(self) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
 }

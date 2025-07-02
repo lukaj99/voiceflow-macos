@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// Centralized service for managing all app settings
+/// Centralized service for managing app settings (language management extracted to LanguageService)
 @MainActor
 public final class SettingsService: ObservableObject {
     
@@ -31,10 +31,7 @@ public final class SettingsService: ObservableObject {
     }
     
     // MARK: - Transcription Settings
-    
-    @Published public var selectedLanguage: String {
-        didSet { UserDefaults.standard.set(selectedLanguage, forKey: "SelectedLanguage") }
-    }
+    // Note: selectedLanguage moved to LanguageService
     
     @Published public var enablePunctuation: Bool {
         didSet { UserDefaults.standard.set(enablePunctuation, forKey: "EnablePunctuation") }
@@ -115,7 +112,7 @@ public final class SettingsService: ObservableObject {
         self.menuBarIcon = MenuBarIconStyle(rawValue: defaults.string(forKey: "MenuBarIcon") ?? "") ?? .colored
         
         // Load transcription settings
-        self.selectedLanguage = defaults.string(forKey: "SelectedLanguage") ?? "en-US"
+        // Note: selectedLanguage now managed by LanguageService
         self.enablePunctuation = defaults.object(forKey: "EnablePunctuation") as? Bool ?? true
         self.enableCapitalization = defaults.object(forKey: "EnableCapitalization") as? Bool ?? true
         self.confidenceThreshold = defaults.object(forKey: "ConfidenceThreshold") as? Double ?? 0.7
@@ -147,7 +144,7 @@ public final class SettingsService: ObservableObject {
         menuBarIcon = .colored
         
         // Transcription settings
-        selectedLanguage = "en-US"
+        // Note: selectedLanguage now managed by LanguageService
         enablePunctuation = true
         enableCapitalization = true
         confidenceThreshold = 0.7
@@ -175,7 +172,7 @@ public final class SettingsService: ObservableObject {
             showFloatingWidget: showFloatingWidget,
             floatingWidgetAlwaysOnTop: floatingWidgetAlwaysOnTop,
             menuBarIcon: menuBarIcon,
-            selectedLanguage: selectedLanguage,
+            // selectedLanguage moved to LanguageService
             enablePunctuation: enablePunctuation,
             enableCapitalization: enableCapitalization,
             confidenceThreshold: confidenceThreshold,
@@ -206,7 +203,7 @@ public final class SettingsService: ObservableObject {
         showFloatingWidget = settings.showFloatingWidget
         floatingWidgetAlwaysOnTop = settings.floatingWidgetAlwaysOnTop
         menuBarIcon = settings.menuBarIcon
-        selectedLanguage = settings.selectedLanguage
+        // selectedLanguage now managed by LanguageService
         enablePunctuation = settings.enablePunctuation
         enableCapitalization = settings.enableCapitalization
         confidenceThreshold = settings.confidenceThreshold
@@ -232,50 +229,7 @@ public final class SettingsService: ObservableObject {
         customVocabulary.removeAll { $0 == word }
     }
     
-    public func getAvailableLanguages() -> [VoiceLanguage] {
-        return [
-            VoiceVoiceLanguage(code: "en-US", name: "English (US)", flag: "🇺🇸"),
-            VoiceLanguage(code: "en-GB", name: "English (UK)", flag: "🇬🇧"),
-            VoiceLanguage(code: "en-AU", name: "English (Australia)", flag: "🇦🇺"),
-            VoiceLanguage(code: "en-CA", name: "English (Canada)", flag: "🇨🇦"),
-            VoiceLanguage(code: "es-ES", name: "Spanish (Spain)", flag: "🇪🇸"),
-            VoiceLanguage(code: "es-MX", name: "Spanish (Mexico)", flag: "🇲🇽"),
-            VoiceLanguage(code: "fr-FR", name: "French (France)", flag: "🇫🇷"),
-            VoiceLanguage(code: "fr-CA", name: "French (Canada)", flag: "🇨🇦"),
-            VoiceLanguage(code: "de-DE", name: "German", flag: "🇩🇪"),
-            VoiceLanguage(code: "it-IT", name: "Italian", flag: "🇮🇹"),
-            VoiceLanguage(code: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷"),
-            VoiceLanguage(code: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹"),
-            VoiceLanguage(code: "ru-RU", name: "Russian", flag: "🇷🇺"),
-            VoiceLanguage(code: "ja-JP", name: "Japanese", flag: "🇯🇵"),
-            VoiceLanguage(code: "ko-KR", name: "Korean", flag: "🇰🇷"),
-            VoiceLanguage(code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳"),
-            VoiceLanguage(code: "zh-TW", name: "Chinese (Traditional)", flag: "🇹🇼"),
-            VoiceLanguage(code: "ar-SA", name: "Arabic", flag: "🇸🇦"),
-            VoiceLanguage(code: "hi-IN", name: "Hindi", flag: "🇮🇳"),
-            VoiceLanguage(code: "th-TH", name: "Thai", flag: "🇹🇭"),
-            VoiceLanguage(code: "vi-VN", name: "Vietnamese", flag: "🇻🇳"),
-            VoiceLanguage(code: "nl-NL", name: "Dutch", flag: "🇳🇱"),
-            VoiceLanguage(code: "sv-SE", name: "Swedish", flag: "🇸🇪"),
-            VoiceLanguage(code: "da-DK", name: "Danish", flag: "🇩🇰"),
-            VoiceLanguage(code: "no-NO", name: "Norwegian", flag: "🇳🇴"),
-            VoiceLanguage(code: "fi-FI", name: "Finnish", flag: "🇫🇮"),
-            VoiceLanguage(code: "pl-PL", name: "Polish", flag: "🇵🇱"),
-            VoiceLanguage(code: "cs-CZ", name: "Czech", flag: "🇨🇿"),
-            VoiceLanguage(code: "hu-HU", name: "Hungarian", flag: "🇭🇺"),
-            VoiceLanguage(code: "ro-RO", name: "Romanian", flag: "🇷🇴"),
-            VoiceLanguage(code: "sk-SK", name: "Slovak", flag: "🇸🇰"),
-            VoiceLanguage(code: "hr-HR", name: "Croatian", flag: "🇭🇷"),
-            VoiceLanguage(code: "uk-UA", name: "Ukrainian", flag: "🇺🇦"),
-            VoiceLanguage(code: "bg-BG", name: "Bulgarian", flag: "🇧🇬"),
-            VoiceLanguage(code: "lt-LT", name: "Lithuanian", flag: "🇱🇹"),
-            VoiceLanguage(code: "lv-LV", name: "Latvian", flag: "🇱🇻"),
-            VoiceLanguage(code: "et-EE", name: "Estonian", flag: "🇪🇪"),
-            VoiceLanguage(code: "sl-SI", name: "Slovenian", flag: "🇸🇮"),
-            VoiceLanguage(code: "he-IL", name: "Hebrew", flag: "🇮🇱"),
-            VoiceLanguage(code: "tr-TR", name: "Turkish", flag: "🇹🇷")
-        ]
-    }
+    // Language management moved to LanguageService - inject as dependency if needed
 }
 
 // MARK: - Supporting Types
@@ -321,7 +275,7 @@ private struct ExportableSettings: Codable {
     let showFloatingWidget: Bool
     let floatingWidgetAlwaysOnTop: Bool
     let menuBarIcon: MenuBarIconStyle
-    let selectedLanguage: String
+    // selectedLanguage moved to LanguageService
     let enablePunctuation: Bool
     let enableCapitalization: Bool
     let confidenceThreshold: Double

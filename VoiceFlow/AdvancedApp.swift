@@ -95,9 +95,11 @@ class AdvancedTranscriptionViewModel: ObservableObject {
         guard let speechEngine = speechEngine else { return }
         
         speechEngine.transcriptionPublisher
-            .receive(on: DispatchQueue.main)
+            .receive(on: RunLoop.main)
             .sink { [weak self] update in
-                self?.handleTranscriptionUpdate(update)
+                Task { @MainActor [weak self] in
+                    self?.handleTranscriptionUpdate(update)
+                }
             }
             .store(in: &cancellables)
     }
@@ -118,22 +120,30 @@ class AdvancedTranscriptionViewModel: ObservableObject {
     }
     
     private func startSessionTimer() {
-        Task { @MainActor in
+        Task {
             while isTranscribing, let startTime = sessionStartTime {
-                sessionDuration = Date().timeIntervalSince(startTime)
+                await updateSessionDuration(from: startTime)
                 try? await Task.sleep(for: .seconds(1))
             }
         }
     }
     
+    private func updateSessionDuration(from startTime: Date) async {
+        sessionDuration = Date().timeIntervalSince(startTime)
+    }
+    
     private func simulateTranscription() {
-        // Simulate real-time audio level using MainActor-isolated scheduling
-        Task { @MainActor in
+        // Simulate real-time audio level
+        Task {
             while isTranscribing {
-                currentAudioLevel = Float.random(in: 0.1...0.8)
+                await updateAudioLevel()
                 try? await Task.sleep(for: .milliseconds(100))
             }
         }
+    }
+    
+    private func updateAudioLevel() async {
+        currentAudioLevel = Float.random(in: 0.1...0.8)
         
         // Simulate transcription updates using MainActor-isolated scheduling
         let sampleTexts = [
@@ -144,17 +154,21 @@ class AdvancedTranscriptionViewModel: ObservableObject {
             "Swift 6 concurrency provides smooth, responsive performance."
         ]
         
-        Task { @MainActor in
+        Task {
             for (_, text) in sampleTexts.enumerated() {
                 guard isTranscribing else { break }
                 
                 try? await Task.sleep(for: .seconds(3))
                 guard isTranscribing else { break }
                 
-                transcribedText += "\n\n" + text
-                updateWordCount()
+                await addTranscriptionText("\n\n" + text)
             }
         }
+    }
+    
+    private func addTranscriptionText(_ text: String) async {
+        transcribedText += text
+        updateWordCount()
     }
     
     private func updateWordCount() {
@@ -331,6 +345,10 @@ struct AdvancedVoiceFlowView: View {
             """
         case .pdf:
             return generateExportContent(format: .markdown) // Simplified for now
+        case .docx:
+            return generateExportContent(format: .markdown) // Simplified for now  
+        case .srt:
+            return "1\n00:00:00,000 --> 00:00:10,000\n\(viewModel.transcribedText)\n" // Simplified SRT format
         }
     }
     
@@ -373,24 +391,5 @@ struct StatCard: View {
         .padding(.vertical, 8)
         .background(Color(.controlBackgroundColor))
         .cornerRadius(8)
-    }
-}
-
-// Simple export format enum for this version
-enum ExportFormat: String, CaseIterable {
-    case text = "txt"
-    case markdown = "md" 
-    case pdf = "pdf"
-    
-    var displayName: String {
-        switch self {
-        case .text: return "Text"
-        case .markdown: return "Markdown"
-        case .pdf: return "PDF"
-        }
-    }
-    
-    var fileExtension: String {
-        return rawValue
     }
 }

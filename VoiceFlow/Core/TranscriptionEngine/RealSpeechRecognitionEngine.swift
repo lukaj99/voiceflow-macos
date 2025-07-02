@@ -6,7 +6,7 @@ import Foundation
 
 /// Real implementation of speech recognition using Apple's Speech framework
 @MainActor
-public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEngineProtocol, @unchecked Sendable {
+public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEngineProtocol {
     // MARK: - Properties
     
     private let speechRecognizer: SFSpeechRecognizer
@@ -65,8 +65,10 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
     }
     
     private func setupAudioEngine() {
-        audioEngine.onBufferProcessed = { [weak self] buffer in
-            self?.processAudioBuffer(buffer)
+        audioEngine.onBufferProcessed = { @Sendable [weak self] buffer in
+            Task { @MainActor [weak self] in
+                self?.processAudioBuffer(buffer)
+            }
         }
     }
     
@@ -108,7 +110,9 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
         
         // Start recognition task
         recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            self?.handleRecognitionResult(result, error: error)
+            Task { @MainActor [weak self] in
+                self?.handleRecognitionResult(result, error: error)
+            }
         }
         
         isTranscribing = true
@@ -159,7 +163,9 @@ public final class RealSpeechRecognitionEngine: NSObject, TranscriptionEnginePro
         recognitionRequest.contextualStrings = Array(customVocabulary)
         
         recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            self?.handleRecognitionResult(result, error: error)
+            Task { @MainActor [weak self] in
+                self?.handleRecognitionResult(result, error: error)
+            }
         }
         
         logger.info("Speech recognition resumed")

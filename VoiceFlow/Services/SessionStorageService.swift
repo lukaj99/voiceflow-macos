@@ -116,7 +116,9 @@ public final class SessionStorageService: ObservableObject {
             at: sessionsDirectory,
             includingPropertiesForKeys: nil,
             options: [.skipsHiddenFiles]
-        ).filter { $0.pathExtension == "json" }
+        ).filter { url in
+            return url.pathExtension == "enc" || url.pathExtension == "json"
+        }
         
         for fileURL in fileURLs {
             try fileManager.removeItem(at: fileURL)

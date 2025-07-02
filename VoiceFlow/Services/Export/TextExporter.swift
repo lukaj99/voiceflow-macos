@@ -84,13 +84,17 @@ public class TextExporter: Exporter {
                                    configuration: TextExportConfiguration,
                                    progressDelegate: ExportProgressDelegate?) throws -> String {
         
-        var content = ""
-        
+        // Use optimized string builder to eliminate repeated concatenations
+        let estimatedSize = session.text.count + (session.segments.count * 100) + 2000
+        let content = MemoryOptimizer.shared.buildString(estimatedCapacity: estimatedSize) { builder in
+            
         // Add metadata if requested
         if configuration.includeMetadata {
             progressDelegate?.exportDidUpdateProgress(0.1, currentStep: "Adding metadata")
-            content += generateMetadataSection(session: session)
-            content += "\n" + String(repeating: "-", count: 80) + "\n\n"
+            builder.append(generateMetadataSection(session: session))
+            builder.append("\n")
+            builder.append(String(repeating: "-", count: 80))
+            builder.append("\n\n")
         }
         
         guard !isCancelled else { throw ExportError.cancelled }
@@ -100,9 +104,9 @@ public class TextExporter: Exporter {
         
         if session.segments.isEmpty {
             // If no segments, just add the full text
-            content += session.text
+            builder.append(session.text)
         } else {
-            // Process segments
+            // Process segments efficiently
             let totalSegments = Double(session.segments.count)
             
             for (index, segment) in session.segments.enumerated() {
@@ -113,89 +117,116 @@ public class TextExporter: Exporter {
                 
                 // Add timestamp if requested
                 if configuration.includeTimestamps {
-                    content += "[\(formatTimestamp(segment.startTime)) - \(formatTimestamp(segment.endTime))] "
+                    builder.append("[")
+                    builder.append(formatTimestamp(segment.startTime))
+                    builder.append(" - ")
+                    builder.append(formatTimestamp(segment.endTime))
+                    builder.append("] ")
                 }
                 
                 // Add confidence score if requested
                 if configuration.includeConfidenceScores {
                     let confidencePercentage = Int(segment.confidence * 100)
-                    content += "[\(confidencePercentage)%] "
+                    builder.append("[")
+                    builder.append(String(confidencePercentage))
+                    builder.append("%] ")
                 }
                 
                 // Add segment text
-                content += segment.text
+                builder.append(segment.text)
                 
                 // Add line breaks between segments if requested
                 if configuration.lineBreaksBetweenSegments {
-                    content += "\n\n"
+                    builder.append("\n\n")
                 } else {
-                    content += " "
+                    builder.append(" ")
                 }
             }
         }
         
-        // Clean up trailing whitespace
-        content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        
         progressDelegate?.exportDidUpdateProgress(1.0, currentStep: "Export complete")
+        }
         
-        return content
+        // Return cleaned content
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     private func generateMetadataSection(session: TranscriptionSession) -> String {
-        var metadata = "TRANSCRIPTION METADATA\n"
-        metadata += "=====================\n\n"
-        
-        // Date and time
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .long
-        dateFormatter.timeStyle = .medium
-        metadata += "Date: \(dateFormatter.string(from: session.createdAt))\n"
-        
-        // Duration
-        if session.duration > 0 {
-            metadata += "Duration: \(session.duration.humanReadable)\n"
+        // Use optimized string builder for metadata generation
+        return MemoryOptimizer.shared.buildString(estimatedCapacity: 1000) { builder in
+            builder.append("TRANSCRIPTION METADATA\n")
+            builder.append("=====================\n\n")
+            
+            // Date and time
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .long
+            dateFormatter.timeStyle = .medium
+            builder.append("Date: ")
+            builder.append(dateFormatter.string(from: session.createdAt))
+            builder.append("\n")
+            
+            // Duration
+            if session.duration > 0 {
+                builder.append("Duration: ")
+                builder.append(session.duration.humanReadable)
+                builder.append("\n")
+            }
+            
+            // Word count
+            builder.append("Word Count: ")
+            builder.append(String(session.wordCount))
+            builder.append("\n")
+            
+            // Language
+            builder.append("Language: ")
+            builder.append(session.language.name)
+            builder.append("\n")
+            
+            // Title
+            if let title = session.metadata.title {
+                builder.append("Title: ")
+                builder.append(title)
+                builder.append("\n")
+            }
+            
+            // Speaker
+            if let speaker = session.metadata.speaker {
+                builder.append("Speaker: ")
+                builder.append(speaker)
+                builder.append("\n")
+            }
+            
+            // Location
+            if let location = session.metadata.location {
+                builder.append("Location: ")
+                builder.append(location)
+                builder.append("\n")
+            }
+            
+            // Tags
+            if !session.metadata.tags.isEmpty {
+                builder.append("Tags: ")
+                builder.append(session.metadata.tags.joined(separator: ", "))
+                builder.append("\n")
+            }
+            
+            // Average confidence
+            if !session.segments.isEmpty {
+                let averageConfidence = session.segments.map { $0.confidence }.reduce(0, +) / Double(session.segments.count)
+                let confidencePercentage = Int(averageConfidence * 100)
+                builder.append("Average Confidence: ")
+                builder.append(String(confidencePercentage))
+                builder.append("%\n")
+            }
+            
+            // Custom fields
+            for (key, value) in session.metadata.customFields {
+                builder.append(key)
+                builder.append(": ")
+                builder.append(value)
+                builder.append("\n")
+            }
         }
-        
-        // Word count
-        metadata += "Word Count: \(session.wordCount)\n"
-        
-        // Language
-        metadata += "Language: \(session.language.name)\n"
-        
-        // Title
-        if let title = session.metadata.title {
-            metadata += "Title: \(title)\n"
-        }
-        
-        // Speaker
-        if let speaker = session.metadata.speaker {
-            metadata += "Speaker: \(speaker)\n"
-        }
-        
-        // Location
-        if let location = session.metadata.location {
-            metadata += "Location: \(location)\n"
-        }
-        
-        // Tags
-        if !session.metadata.tags.isEmpty {
-            metadata += "Tags: \(session.metadata.tags.joined(separator: ", "))\n"
-        }
-        
-        // Average confidence
-        if !session.segments.isEmpty {
-            let averageConfidence = session.segments.map { $0.confidence }.reduce(0, +) / Double(session.segments.count)
-            let confidencePercentage = Int(averageConfidence * 100)
-            metadata += "Average Confidence: \(confidencePercentage)%\n"
-        }
-        
-        // Custom fields
-        for (key, value) in session.metadata.customFields {
-            metadata += "\(key): \(value)\n"
-        }
-        
-        return metadata
     }
     
     private func formatTimestamp(_ timeInterval: TimeInterval) -> String {
