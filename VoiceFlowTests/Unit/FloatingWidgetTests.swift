@@ -1,7 +1,7 @@
 import XCTest
 import AppKit
 import SwiftUI
-@testable import VoiceFlowUI
+@testable import VoiceFlow
 
 class FloatingWidgetTests: XCTestCase {
     var window: FloatingWidgetWindow!

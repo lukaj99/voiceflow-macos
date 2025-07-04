@@ -110,6 +110,44 @@ public struct TranscriptionSegment: Codable, Sendable {
     }
 }
 
+// MARK: - Language Support
+
+public enum Language: String, CaseIterable, Codable, Sendable {
+    case english = "en-US"
+    case spanish = "es-ES"
+    case french = "fr-FR"
+    case german = "de-DE"
+    case italian = "it-IT"
+    case portuguese = "pt-BR"
+    case chinese = "zh-CN"
+    case japanese = "ja-JP"
+    case korean = "ko-KR"
+    case russian = "ru-RU"
+    case arabic = "ar-SA"
+    case hindi = "hi-IN"
+    
+    public var displayName: String {
+        switch self {
+        case .english: return "English"
+        case .spanish: return "Spanish"
+        case .french: return "French"
+        case .german: return "German"
+        case .italian: return "Italian"
+        case .portuguese: return "Portuguese"
+        case .chinese: return "Chinese"
+        case .japanese: return "Japanese"
+        case .korean: return "Korean"
+        case .russian: return "Russian"
+        case .arabic: return "Arabic"
+        case .hindi: return "Hindi"
+        }
+    }
+    
+    public var locale: Locale {
+        Locale(identifier: rawValue)
+    }
+}
+
 public struct TranscriptionSession: Codable, Identifiable, Sendable {
     public let id: UUID
     public let startTime: Date
@@ -252,12 +290,9 @@ public struct TranscriptionMetrics: Sendable {
     }
 }
 
-// MARK: - Audio Processing Actor
-
-@globalActor
-public actor AudioProcessingActor {
-    public static let shared = AudioProcessingActor()
-}
+// MARK: - Audio Processing
+// Note: AudioProcessingActor is now implemented in AudioManager.swift
+// with proper Swift 6 actor isolation patterns
 
 // MARK: - Extensions
 

@@ -1,229 +1,267 @@
-import AVFoundation
-import Accelerate
+import Foundation
+@preconcurrency import AVFoundation
 
-/// High-performance audio buffer pool for eliminating frequent allocations
-/// Addresses critical performance bottleneck: Task creation per buffer
-public final class AudioBufferPool {
+/// High-performance audio buffer pool for efficient memory management
+/// Single Responsibility: Audio buffer allocation, pooling, and recycling
+public actor AudioBufferPool {
+    
+    // MARK: - Types
+    
+    public struct PooledBuffer: @unchecked Sendable {
+        public let id: UUID
+        public let buffer: AVAudioPCMBuffer
+        public let timestamp: Date
+        
+        fileprivate init(buffer: AVAudioPCMBuffer) {
+            self.id = UUID()
+            self.buffer = buffer
+            self.timestamp = Date()
+        }
+    }
+    
+    public struct PoolStatistics: Sendable {
+        public let totalBuffers: Int
+        public let availableBuffers: Int
+        public let allocatedBuffers: Int
+        public let poolHitRate: Double
+        public let memoryUsageMB: Double
+        public let peakMemoryUsageMB: Double
+        
+        public init(
+            totalBuffers: Int,
+            availableBuffers: Int,
+            allocatedBuffers: Int,
+            poolHitRate: Double,
+            memoryUsageMB: Double,
+            peakMemoryUsageMB: Double
+        ) {
+            self.totalBuffers = totalBuffers
+            self.availableBuffers = availableBuffers
+            self.allocatedBuffers = allocatedBuffers
+            self.poolHitRate = poolHitRate
+            self.memoryUsageMB = memoryUsageMB
+            self.peakMemoryUsageMB = peakMemoryUsageMB
+        }
+    }
     
     // MARK: - Properties
     
-    private let poolSize: Int
-    private var availableBuffers: [AVAudioPCMBuffer]
-    private let bufferFormat: AVAudioFormat
-    private let frameCapacity: AVAudioFrameCount
-    private let poolQueue = DispatchQueue(label: "com.voiceflow.bufferpool", attributes: .concurrent)
+    private var availableBuffers: [PooledBuffer] = []
+    private var allocatedBuffers: Set<UUID> = []
+    private let maxPoolSize: Int
+    private let bufferFrameCapacity: AVAudioFrameCount
+    private let audioFormat: AVAudioFormat
     
-    // Performance metrics
-    private var borrowCount: Int = 0
-    private var returnCount: Int = 0
-    private var missCount: Int = 0 // When pool is empty
+    // Statistics
+    private var totalAllocations: Int = 0
+    private var poolHits: Int = 0
+    private var poolMisses: Int = 0
+    private var peakMemoryUsage: Double = 0.0
+    
+    // Buffer management
+    private let maxBufferAge: TimeInterval = 30.0 // 30 seconds
+    private var lastCleanupTime = Date()
+    private let cleanupInterval: TimeInterval = 10.0 // Cleanup every 10 seconds
     
     // MARK: - Initialization
     
-    public init(format: AVAudioFormat, frameCapacity: AVAudioFrameCount, poolSize: Int = 10) {
-        self.bufferFormat = format
-        self.frameCapacity = frameCapacity
-        self.poolSize = poolSize
-        self.availableBuffers = []
+    public init(
+        maxPoolSize: Int = 20,
+        bufferFrameCapacity: AVAudioFrameCount = 4096,
+        audioFormat: AVAudioFormat
+    ) {
+        self.maxPoolSize = maxPoolSize
+        self.bufferFrameCapacity = bufferFrameCapacity
+        self.audioFormat = audioFormat
         
-        // Pre-allocate all buffers
-        self.availableBuffers = (0..<poolSize).compactMap { _ in
-            AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCapacity)
+        print("🔄 AudioBufferPool initialized - Max size: \(maxPoolSize), Frame capacity: \(bufferFrameCapacity)")
+        
+        // Pre-populate pool with initial buffers
+        Task {
+            await preallocateBuffers(count: min(5, maxPoolSize))
         }
     }
     
-    // MARK: - Buffer Management
+    // MARK: - Public Interface
     
-    /// Borrow a buffer from the pool
-    /// - Returns: A clean, ready-to-use buffer
-    public func borrowBuffer() -> AVAudioPCMBuffer {
-        return poolQueue.sync {
-            borrowCount += 1
-            
-            if let buffer = availableBuffers.popLast() {
-                // Reset buffer for reuse
-                buffer.frameLength = 0
-                return buffer
+    /// Acquire a buffer from the pool or create a new one
+    public func acquireBuffer() -> PooledBuffer? {
+        totalAllocations += 1
+        
+        // Perform cleanup if needed
+        performCleanupIfNeeded()
+        
+        // Try to get from pool first
+        if let pooledBuffer = getFromPool() {
+            poolHits += 1
+            allocatedBuffers.insert(pooledBuffer.id)
+            return pooledBuffer
+        }
+        
+        // Create new buffer if pool is empty
+        poolMisses += 1
+        guard let newBuffer = createBuffer() else {
+            print("❌ Failed to create new audio buffer")
+            return nil
+        }
+        
+        let pooledBuffer = PooledBuffer(buffer: newBuffer)
+        allocatedBuffers.insert(pooledBuffer.id)
+        
+        return pooledBuffer
+    }
+    
+    /// Return a buffer to the pool for reuse
+    public func returnBuffer(_ pooledBuffer: PooledBuffer) {
+        allocatedBuffers.remove(pooledBuffer.id)
+        
+        // Reset buffer data
+        pooledBuffer.buffer.frameLength = 0
+        
+        // Add back to pool if there's space
+        if availableBuffers.count < maxPoolSize {
+            // Create new pooled buffer with current timestamp
+            let refreshedBuffer = PooledBuffer(buffer: pooledBuffer.buffer)
+            availableBuffers.append(refreshedBuffer)
+        }
+        
+        // Update memory statistics
+        updateMemoryStatistics()
+    }
+    
+    /// Get current pool statistics
+    public func getStatistics() -> PoolStatistics {
+        let currentMemoryUsage = calculateMemoryUsage()
+        peakMemoryUsage = max(peakMemoryUsage, currentMemoryUsage)
+        
+        let hitRate = totalAllocations > 0 ? Double(poolHits) / Double(totalAllocations) : 0.0
+        
+        return PoolStatistics(
+            totalBuffers: availableBuffers.count + allocatedBuffers.count,
+            availableBuffers: availableBuffers.count,
+            allocatedBuffers: allocatedBuffers.count,
+            poolHitRate: hitRate,
+            memoryUsageMB: currentMemoryUsage,
+            peakMemoryUsageMB: peakMemoryUsage
+        )
+    }
+    
+    /// Clear all buffers and reset pool
+    public func clearPool() {
+        availableBuffers.removeAll()
+        allocatedBuffers.removeAll()
+        
+        // Reset statistics
+        totalAllocations = 0
+        poolHits = 0
+        poolMisses = 0
+        peakMemoryUsage = 0.0
+        
+        print("🧹 Audio buffer pool cleared")
+    }
+    
+    /// Optimize pool size based on usage patterns
+    public func optimizePoolSize() {
+        let stats = getStatistics()
+        
+        // Optimize based on hit rate and memory usage
+        let targetPoolSize: Int
+        
+        if stats.poolHitRate > 0.9 && stats.memoryUsageMB < 10.0 {
+            // High hit rate and low memory usage - can increase pool size
+            targetPoolSize = min(maxPoolSize, availableBuffers.count + 5)
+        } else if stats.poolHitRate < 0.5 || stats.memoryUsageMB > 20.0 {
+            // Low hit rate or high memory usage - decrease pool size
+            targetPoolSize = max(5, availableBuffers.count - 3)
+        } else {
+            // Maintain current size
+            targetPoolSize = availableBuffers.count
+        }
+        
+        // Adjust pool size
+        while availableBuffers.count > targetPoolSize {
+            availableBuffers.removeLast()
+        }
+        
+        while availableBuffers.count < targetPoolSize {
+            if let newBuffer = createBuffer() {
+                let pooledBuffer = PooledBuffer(buffer: newBuffer)
+                availableBuffers.append(pooledBuffer)
             } else {
-                // Pool is empty, create new buffer (track miss)
-                missCount += 1
-                return AVAudioPCMBuffer(pcmFormat: bufferFormat, frameCapacity: frameCapacity) ?? 
-                       AVAudioPCMBuffer(pcmFormat: bufferFormat, frameCapacity: frameCapacity)!
+                break
             }
         }
-    }
-    
-    /// Return a buffer to the pool
-    /// - Parameter buffer: The buffer to return
-    public func returnBuffer(_ buffer: AVAudioPCMBuffer) {
-        poolQueue.async(flags: .barrier) { [weak self] in
-            guard let self = self else { return }
-            
-            self.returnCount += 1
-            
-            // Only return if pool isn't full and buffer matches format
-            if self.availableBuffers.count < self.poolSize && 
-               buffer.format == self.bufferFormat {
-                // Clear the buffer
-                buffer.frameLength = 0
-                self.availableBuffers.append(buffer)
-            }
-        }
-    }
-    
-    // MARK: - Performance Monitoring
-    
-    public struct PoolMetrics {
-        public let availableBuffers: Int
-        public let borrowCount: Int
-        public let returnCount: Int
-        public let missCount: Int
-        public let hitRate: Double
         
-        public var description: String {
-            return """
-            Buffer Pool Metrics:
-            - Available: \(availableBuffers)/\(availableBuffers + missCount)
-            - Borrows: \(borrowCount)
-            - Returns: \(returnCount)
-            - Misses: \(missCount)
-            - Hit Rate: \(String(format: "%.1f", hitRate * 100))%
-            """
-        }
+        print("🎯 Pool optimized - Target size: \(targetPoolSize), Actual size: \(availableBuffers.count)")
     }
     
-    public func getMetrics() -> PoolMetrics {
-        return poolQueue.sync {
-            let hitRate = borrowCount > 0 ? Double(borrowCount - missCount) / Double(borrowCount) : 1.0
-            return PoolMetrics(
-                availableBuffers: availableBuffers.count,
-                borrowCount: borrowCount,
-                returnCount: returnCount,
-                missCount: missCount,
-                hitRate: hitRate
-            )
+    // MARK: - Private Methods
+    
+    private func preallocateBuffers(count: Int) {
+        for _ in 0..<count {
+            if let buffer = createBuffer() {
+                let pooledBuffer = PooledBuffer(buffer: buffer)
+                availableBuffers.append(pooledBuffer)
+            }
         }
+        print("📦 Pre-allocated \(availableBuffers.count) audio buffers")
     }
     
-    public func resetMetrics() {
-        poolQueue.async(flags: .barrier) { [weak self] in
-            self?.borrowCount = 0
-            self?.returnCount = 0
-            self?.missCount = 0
+    private func getFromPool() -> PooledBuffer? {
+        return availableBuffers.popLast()
+    }
+    
+    private func createBuffer() -> AVAudioPCMBuffer? {
+        return AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: bufferFrameCapacity)
+    }
+    
+    private func performCleanupIfNeeded() {
+        let now = Date()
+        
+        guard now.timeIntervalSince(lastCleanupTime) > cleanupInterval else {
+            return
         }
+        
+        lastCleanupTime = now
+        
+        // Remove old buffers
+        availableBuffers.removeAll { buffer in
+            now.timeIntervalSince(buffer.timestamp) > maxBufferAge
+        }
+        
+        print("🧹 Buffer pool cleanup completed - \(availableBuffers.count) buffers remaining")
+    }
+    
+    private func calculateMemoryUsage() -> Double {
+        let bytesPerFrame = audioFormat.streamDescription.pointee.mBytesPerFrame
+        let totalFrames = AVAudioFrameCount(availableBuffers.count + allocatedBuffers.count) * bufferFrameCapacity
+        let totalBytes = Double(totalFrames) * Double(bytesPerFrame)
+        return totalBytes / (1024 * 1024) // Convert to MB
+    }
+    
+    private func updateMemoryStatistics() {
+        let currentUsage = calculateMemoryUsage()
+        peakMemoryUsage = max(peakMemoryUsage, currentUsage)
     }
 }
 
-/// Optimized audio processor that eliminates Task creation per buffer
-public final class OptimizedAudioProcessor {
+// MARK: - Global Buffer Pool Instance
+
+/// Shared audio buffer pool instance for application-wide use
+public actor AudioBufferManager {
+    private static var _sharedPool: AudioBufferPool?
     
-    // MARK: - Properties
-    
-    private let bufferPool: AudioBufferPool
-    private let processingQueue = DispatchQueue(label: "com.voiceflow.audioprocessing", 
-                                              qos: .userInteractive,
-                                              attributes: .concurrent)
-    
-    // Circular buffer for RMS calculations (eliminates allocation per calculation)
-    private var rmsHistory: [Float]
-    private var rmsIndex: Int = 0
-    private let rmsHistorySize = 10
-    
-    // Reusable calculation variables
-    private var reusableRMS: Float = 0
-    private var reusableAvgPower: Float = 0
-    
-    // Performance targets
-    public static let targetLatency: TimeInterval = 0.050 // 50ms target
-    
-    // MARK: - Initialization
-    
-    public init(format: AVAudioFormat, frameCapacity: AVAudioFrameCount) {
-        self.bufferPool = AudioBufferPool(format: format, frameCapacity: frameCapacity)
-        self.rmsHistory = Array(repeating: 0.0, count: rmsHistorySize)
-    }
-    
-    // MARK: - Audio Processing
-    
-    /// Optimized audio level calculation using SIMD and avoiding repeated allocations
-    public func calculateAudioLevel(from buffer: AVAudioPCMBuffer) -> Float {
-        guard let channelData = buffer.floatChannelData else { return 0 }
-        
-        let channelDataPointer = channelData[0]
-        let frameLength = Int(buffer.frameLength)
-        
-        // Use pre-allocated variable instead of creating new ones
-        vDSP_rmsqv(channelDataPointer, 1, &reusableRMS, vDSP_Length(frameLength))
-        
-        // Convert to decibels using pre-allocated variable
-        reusableAvgPower = 20 * log10f(reusableRMS)
-        
-        // Normalize to 0-1 range with constants for performance
-        let normalizedPower = (reusableAvgPower + 60.0) / 60.0 // -60dB to 0dB range
-        let clampedLevel = max(0, min(1, normalizedPower))
-        
-        // Update circular buffer for smoothing
-        rmsHistory[rmsIndex] = clampedLevel
-        rmsIndex = (rmsIndex + 1) % rmsHistorySize
-        
-        // Return smoothed value using SIMD
-        var smoothedLevel: Float = 0
-        vDSP_meanv(rmsHistory, 1, &smoothedLevel, vDSP_Length(rmsHistorySize))
-        
-        return smoothedLevel
-    }
-    
-    /// Process audio buffer without creating Tasks (eliminates critical bottleneck)
-    public func processBuffer(_ inputBuffer: AVAudioPCMBuffer, 
-                            completion: @escaping (Float, AVAudioPCMBuffer) -> Void) {
-        processingQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            let startTime = CFAbsoluteTimeGetCurrent()
-            
-            // Calculate audio level efficiently
-            let level = self.calculateAudioLevel(from: inputBuffer)
-            
-            // Get pooled buffer for processing
-            let workingBuffer = self.bufferPool.borrowBuffer()
-            
-            // Copy data efficiently using AVAudioBuffer methods
-            guard let inputFloatData = inputBuffer.floatChannelData,
-                  let workingFloatData = workingBuffer.floatChannelData else {
-                self.bufferPool.returnBuffer(workingBuffer)
-                return
-            }
-            
-            let frameCount = Int(inputBuffer.frameLength)
-            workingBuffer.frameLength = inputBuffer.frameLength
-            
-            // Use SIMD for efficient copying
-            cblas_scopy(Int32(frameCount), inputFloatData[0], 1, workingFloatData[0], 1)
-            
-            let processingTime = CFAbsoluteTimeGetCurrent() - startTime
-            
-            // Ensure we meet performance targets
-            if processingTime > Self.targetLatency {
-                print("⚠️ Audio processing exceeded target latency: \(processingTime * 1000)ms")
-            }
-            
-            // Return processed buffer and level
-            completion(level, workingBuffer)
-            
-            // Return buffer to pool for reuse
-            DispatchQueue.global(qos: .utility).async {
-                self.bufferPool.returnBuffer(workingBuffer)
-            }
+    public static func getSharedPool(audioFormat: AVAudioFormat) async -> AudioBufferPool {
+        if let existingPool = _sharedPool {
+            return existingPool
         }
+        
+        let newPool = AudioBufferPool(audioFormat: audioFormat)
+        _sharedPool = newPool
+        return newPool
     }
     
-    // MARK: - Performance Monitoring
-    
-    public func getBufferPoolMetrics() -> AudioBufferPool.PoolMetrics {
-        return bufferPool.getMetrics()
-    }
-    
-    public func resetPerformanceMetrics() {
-        bufferPool.resetMetrics()
+    public static func resetSharedPool() async {
+        _sharedPool = nil
     }
 }

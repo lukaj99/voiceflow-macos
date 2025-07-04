@@ -1,440 +1,673 @@
 import Foundation
-import Combine
+import AVFoundation
+import OSLog
 
-/// Comprehensive performance monitoring dashboard for tracking all optimizations
-/// Provides real-time metrics and automated performance tuning recommendations
-@MainActor
-public final class PerformanceMonitor: ObservableObject {
-    
-    // MARK: - Published Properties
-    
-    @Published public private(set) var audioMetrics = AudioPerformanceMetrics()
-    @Published public private(set) var processingMetrics = ProcessingPerformanceMetrics()
-    @Published public private(set) var exportMetrics = ExportPerformanceMetrics()
-    @Published public private(set) var memoryMetrics = MemoryPerformanceMetrics()
-    @Published public private(set) var overallScore: Double = 0
-    @Published public private(set) var recommendations: [PerformanceRecommendation] = []
+/// Comprehensive performance monitoring system for VoiceFlow
+/// Single Responsibility: Application performance tracking and analytics
+public actor PerformanceMonitor {
     
     // MARK: - Types
     
-    public struct AudioPerformanceMetrics: Codable {
-        public var bufferLatency: TimeInterval = 0
-        public var poolHitRate: Double = 0
-        public var taskCreationCount: Int = 0
-        public var targetLatencyMet: Bool = false
+    public struct PerformanceMetrics: Sendable, Codable {
+        public let timestamp: Date
+        public let cpuUsage: Double
+        public let memoryUsageMB: Double
+        public let diskUsageMB: Double
+        public let networkLatency: TimeInterval
+        public let audioBufferStats: AudioBufferPool.PoolStatistics?
+        public let transcriptionLatency: TimeInterval
+        public let audioProcessingLatency: TimeInterval
+        public let sessionDuration: TimeInterval
+        public let errorCount: Int
+        public let operationsPerSecond: Double
         
-        public var score: Double {
-            let latencyScore = targetLatencyMet ? 1.0 : max(0, 1.0 - (bufferLatency / 0.1))
-            let poolScore = poolHitRate
-            let efficiencyScore = taskCreationCount < 100 ? 1.0 : max(0, 1.0 - Double(taskCreationCount - 100) / 1000)
-            
-            return (latencyScore * 0.4) + (poolScore * 0.3) + (efficiencyScore * 0.3)
+        public init(
+            timestamp: Date,
+            cpuUsage: Double,
+            memoryUsageMB: Double,
+            diskUsageMB: Double,
+            networkLatency: TimeInterval,
+            audioBufferStats: AudioBufferPool.PoolStatistics?,
+            transcriptionLatency: TimeInterval,
+            audioProcessingLatency: TimeInterval,
+            sessionDuration: TimeInterval,
+            errorCount: Int,
+            operationsPerSecond: Double
+        ) {
+            self.timestamp = timestamp
+            self.cpuUsage = cpuUsage
+            self.memoryUsageMB = memoryUsageMB
+            self.diskUsageMB = diskUsageMB
+            self.networkLatency = networkLatency
+            self.audioBufferStats = audioBufferStats
+            self.transcriptionLatency = transcriptionLatency
+            self.audioProcessingLatency = audioProcessingLatency
+            self.sessionDuration = sessionDuration
+            self.errorCount = errorCount
+            self.operationsPerSecond = operationsPerSecond
         }
     }
     
-    public struct ProcessingPerformanceMetrics: Codable {
-        public var averageLatency: TimeInterval = 0
-        public var throughputPerSecond: Double = 0
-        public var qualityScore: Double = 0
-        public var asyncEfficiency: Double = 0
-        
-        public var score: Double {
-            let latencyScore = averageLatency < 0.05 ? 1.0 : max(0, 1.0 - (averageLatency / 0.2))
-            let throughputScore = min(1.0, throughputPerSecond / 100.0)
-            let qualityScore = self.qualityScore
-            let asyncScore = asyncEfficiency
-            
-            return (latencyScore * 0.25) + (throughputScore * 0.25) + (qualityScore * 0.25) + (asyncScore * 0.25)
-        }
-    }
-    
-    public struct ExportPerformanceMetrics: Codable {
-        public var parallelizationRatio: Double = 0
-        public var averageExportTime: TimeInterval = 0
-        public var throughputImprovement: Double = 0
-        public var concurrentJobsCount: Int = 0
-        
-        public var score: Double {
-            let parallelScore = min(1.0, parallelizationRatio / 4.0)
-            let speedScore = averageExportTime < 5.0 ? 1.0 : max(0, 1.0 - (averageExportTime - 5.0) / 10.0)
-            let improvementScore = min(1.0, throughputImprovement)
-            
-            return (parallelScore * 0.4) + (speedScore * 0.3) + (improvementScore * 0.3)
-        }
-    }
-    
-    public struct MemoryPerformanceMetrics: Codable {
-        public var currentUsage: Int64 = 0
-        public var peakUsage: Int64 = 0
-        public var allocationEfficiency: Double = 0
-        public var cacheHitRate: Double = 0
-        
-        public var score: Double {
-            let usageScore = currentUsage < 500_000_000 ? 1.0 : max(0, 1.0 - Double(currentUsage - 500_000_000) / 1_000_000_000)
-            let allocationScore = allocationEfficiency
-            let cacheScore = cacheHitRate
-            
-            return (usageScore * 0.4) + (allocationScore * 0.3) + (cacheScore * 0.3)
-        }
-    }
-    
-    public struct PerformanceRecommendation: Identifiable, Codable {
+    public struct PerformanceAlert: Sendable, Identifiable {
         public let id = UUID()
-        public let category: Category
-        public let severity: Severity
-        public let title: String
-        public let description: String
-        public let action: String
+        public let type: AlertType
+        public let message: String
+        public let severity: AlertSeverity
+        public let timestamp: Date
+        public let metrics: PerformanceMetrics
         
-        public enum Category: String, CaseIterable, Codable {
-            case audio = "Audio Processing"
-            case async = "Async Operations"
-            case export = "Export Performance"
-            case memory = "Memory Usage"
-            case ui = "UI Responsiveness"
+        public enum AlertType: String, CaseIterable, Codable, Sendable {
+            case highCPUUsage = "High CPU Usage"
+            case highMemoryUsage = "High Memory Usage"
+            case highLatency = "High Latency"
+            case bufferPoolInefficiency = "Buffer Pool Inefficiency"
+            case frequentErrors = "Frequent Errors"
+            case performanceDegradation = "Performance Degradation"
         }
         
-        public enum Severity: String, CaseIterable, Codable {
-            case low = "Low"
-            case medium = "Medium"
-            case high = "High"
+        public enum AlertSeverity: String, CaseIterable, Codable, Sendable {
+            case info = "Info"
+            case warning = "Warning"
             case critical = "Critical"
             
             public var color: String {
                 switch self {
-                case .low: return "green"
-                case .medium: return "yellow"
-                case .high: return "orange"
+                case .info: return "blue"
+                case .warning: return "orange"
                 case .critical: return "red"
                 }
             }
         }
     }
     
+    public struct PerformanceProfile: Sendable, Codable {
+        public let profileName: String
+        public let averageMetrics: PerformanceMetrics
+        public let peakMetrics: PerformanceMetrics
+        public let samplesCount: Int
+        public let profileDuration: TimeInterval
+        public let recommendations: [String]
+        
+        public init(
+            profileName: String,
+            averageMetrics: PerformanceMetrics,
+            peakMetrics: PerformanceMetrics,
+            samplesCount: Int,
+            profileDuration: TimeInterval,
+            recommendations: [String]
+        ) {
+            self.profileName = profileName
+            self.averageMetrics = averageMetrics
+            self.peakMetrics = peakMetrics
+            self.samplesCount = samplesCount
+            self.profileDuration = profileDuration
+            self.recommendations = recommendations
+        }
+    }
+    
     // MARK: - Properties
     
-    private var monitoringTimer: Timer?
-    private let updateInterval: TimeInterval = 2.0
+    private let logger = Logger(subsystem: "com.voiceflow.app", category: "PerformanceMonitor")
+    private var metricsHistory: [PerformanceMetrics] = []
+    private var performanceAlerts: [PerformanceAlert] = []
+    private let maxHistorySize = 1000
+    private let maxAlertsSize = 100
     
-    // Performance targets
-    private let targetAudioLatency: TimeInterval = 0.050
-    private let targetProcessingThroughput: Double = 100.0
-    private let targetMemoryUsage: Int64 = 500_000_000
-    private let targetParallelization: Double = 3.0
+    // Session tracking
+    private var sessionStartTime = Date()
+    private var operationCount = 0
+    private var lastMetricsTime = Date()
+    private var isMonitoring = false
     
-    // Component references
-    private weak var audioBufferPool: AudioBufferPool?
-    private weak var asyncProcessor: OptimizedAsyncTranscriptionProcessor?
-    private weak var exportEngine: ParallelExportEngine?
-    private let memoryOptimizer = MemoryOptimizer.shared
+    // Performance thresholds
+    private let cpuThreshold: Double = 80.0 // 80% CPU
+    private let memoryThreshold: Double = 500.0 // 500MB
+    private let latencyThreshold: TimeInterval = 2.0 // 2 seconds
+    private let errorRateThreshold: Double = 10.0 // 10 errors per hour
     
-    // MARK: - Initialization
+    // Buffer pool reference
+    private weak var bufferPool: AudioBufferPool?
     
-    public init() {
-        startMonitoring()
+    // MARK: - Singleton Instance
+    
+    public static let shared = PerformanceMonitor()
+    
+    private init() {
+        logger.info("📊 PerformanceMonitor initialized")
     }
     
-    deinit {
-        stopMonitoring()
-    }
+    // MARK: - Public Interface
     
-    // MARK: - Component Registration
-    
-    public func registerComponents(
-        audioBufferPool: AudioBufferPool?,
-        asyncProcessor: OptimizedAsyncTranscriptionProcessor?,
-        exportEngine: ParallelExportEngine?
-    ) {
-        self.audioBufferPool = audioBufferPool
-        self.asyncProcessor = asyncProcessor
-        self.exportEngine = exportEngine
-    }
-    
-    // MARK: - Monitoring Control
-    
-    public func startMonitoring() {
-        stopMonitoring()
+    /// Start performance monitoring
+    public func startMonitoring(bufferPool: AudioBufferPool? = nil) {
+        guard !isMonitoring else { return }
         
-        monitoringTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                await self?.updateMetrics()
+        self.bufferPool = bufferPool
+        isMonitoring = true
+        sessionStartTime = Date()
+        operationCount = 0
+        lastMetricsTime = Date()
+        
+        logger.info("📊 Performance monitoring started")
+        
+        // Start periodic metrics collection
+        Task {
+            await schedulePeriodicMetricsCollection()
+        }
+    }
+    
+    /// Stop performance monitoring
+    public func stopMonitoring() {
+        guard isMonitoring else { return }
+        
+        isMonitoring = false
+        logger.info("📊 Performance monitoring stopped")
+    }
+    
+    /// Record a performance operation
+    public func recordOperation() {
+        operationCount += 1
+    }
+    
+    /// Record transcription latency
+    public func recordTranscriptionLatency(_ latency: TimeInterval) {
+        if latency > latencyThreshold {
+            Task {
+                let metrics = await getCurrentMetrics()
+                let alert = PerformanceAlert(
+                    type: .highLatency,
+                    message: "Transcription latency is high: \(String(format: "%.2f", latency))s",
+                    severity: .warning,
+                    timestamp: Date(),
+                    metrics: metrics
+                )
+                recordAlert(alert)
             }
         }
     }
     
-    public func stopMonitoring() {
-        monitoringTimer?.invalidate()
-        monitoringTimer = nil
+    /// Record audio processing latency
+    public func recordAudioProcessingLatency(_ latency: TimeInterval) {
+        if latency > latencyThreshold / 2 { // Audio should be faster than transcription
+            Task {
+                let metrics = await getCurrentMetrics()
+                let alert = PerformanceAlert(
+                    type: .highLatency,
+                    message: "Audio processing latency is high: \(String(format: "%.2f", latency))s",
+                    severity: .warning,
+                    timestamp: Date(),
+                    metrics: metrics
+                )
+                recordAlert(alert)
+            }
+        }
     }
     
-    // MARK: - Metrics Update
-    
-    private func updateMetrics() async {
-        await updateAudioMetrics()
-        await updateProcessingMetrics()
-        await updateExportMetrics()
-        await updateMemoryMetrics()
+    /// Get current performance metrics
+    public func getCurrentMetrics() async -> PerformanceMetrics {
+        let currentTime = Date()
+        let sessionDuration = currentTime.timeIntervalSince(sessionStartTime)
+        let timeSinceLastMetrics = currentTime.timeIntervalSince(lastMetricsTime)
+        let operationsPerSecond = timeSinceLastMetrics > 0 ? Double(operationCount) / timeSinceLastMetrics : 0.0
         
-        calculateOverallScore()
-        generateRecommendations()
-    }
-    
-    private func updateAudioMetrics() async {
-        guard let audioBufferPool = audioBufferPool else { return }
-        
-        let poolMetrics = audioBufferPool.getMetrics()
-        
-        audioMetrics = AudioPerformanceMetrics(
-            bufferLatency: 0.064, // Current 64ms buffer size
-            poolHitRate: poolMetrics.hitRate,
-            taskCreationCount: poolMetrics.borrowCount,
-            targetLatencyMet: 0.064 < targetAudioLatency
+        return PerformanceMetrics(
+            timestamp: currentTime,
+            cpuUsage: getCPUUsage(),
+            memoryUsageMB: getMemoryUsage(),
+            diskUsageMB: getDiskUsage(),
+            networkLatency: 0.0, // Would be measured during actual network calls
+            audioBufferStats: await bufferPool?.getStatistics(),
+            transcriptionLatency: 0.0, // Would be measured during actual transcription
+            audioProcessingLatency: 0.0, // Would be measured during actual audio processing
+            sessionDuration: sessionDuration,
+            errorCount: 0, // Would be fetched from ErrorReporter
+            operationsPerSecond: operationsPerSecond
         )
     }
     
-    private func updateProcessingMetrics() async {
-        guard let asyncProcessor = asyncProcessor else { return }
+    /// Get performance history
+    public func getPerformanceHistory(limit: Int = 100) -> [PerformanceMetrics] {
+        return Array(metricsHistory.suffix(limit))
+    }
+    
+    /// Get performance alerts
+    public func getPerformanceAlerts(limit: Int = 50) -> [PerformanceAlert] {
+        return Array(performanceAlerts.suffix(limit))
+    }
+    
+    /// Generate performance profile
+    public func generatePerformanceProfile(name: String = "Current Session") async -> PerformanceProfile {
+        guard !metricsHistory.isEmpty else {
+            let emptyMetrics = await getCurrentMetrics()
+            return PerformanceProfile(
+                profileName: name,
+                averageMetrics: emptyMetrics,
+                peakMetrics: emptyMetrics,
+                samplesCount: 0,
+                profileDuration: 0,
+                recommendations: ["No data available for analysis"]
+            )
+        }
         
-        let (rate, _, _, latency) = asyncProcessor.getProcessingMetrics()
-        let qualityMetrics = asyncProcessor.getQualityMetrics()
+        let averageMetrics = await calculateAverageMetrics()
+        let peakMetrics = await calculatePeakMetrics()
+        let recommendations = generateRecommendations(average: averageMetrics, peak: peakMetrics)
+        let profileDuration = Date().timeIntervalSince(sessionStartTime)
         
-        processingMetrics = ProcessingPerformanceMetrics(
-            averageLatency: latency,
-            throughputPerSecond: rate,
-            qualityScore: qualityMetrics.qualityScore,
-            asyncEfficiency: calculateAsyncEfficiency(throughput: rate)
+        return PerformanceProfile(
+            profileName: name,
+            averageMetrics: averageMetrics,
+            peakMetrics: peakMetrics,
+            samplesCount: metricsHistory.count,
+            profileDuration: profileDuration,
+            recommendations: recommendations
         )
     }
     
-    private func updateExportMetrics() async {
-        guard let exportEngine = exportEngine else { return }
+    /// Export performance data
+    public func exportPerformanceData() async -> Data? {
+        let profile = await generatePerformanceProfile(name: "Export - \(Date().formatted())")
         
-        let performanceMetrics = exportEngine.getPerformanceMetrics()
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.outputFormatting = .prettyPrinted
+            return try encoder.encode(profile)
+        } catch {
+            logger.error("📊 Failed to export performance data: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    /// Clear performance history
+    public func clearHistory() {
+        metricsHistory.removeAll()
+        performanceAlerts.removeAll()
+        logger.info("📊 Performance history cleared")
+    }
+    
+    /// Check performance health
+    public func checkPerformanceHealth() -> PerformanceHealthStatus {
+        guard !metricsHistory.isEmpty else {
+            return PerformanceHealthStatus(
+                overall: .unknown,
+                cpu: .unknown,
+                memory: .unknown,
+                latency: .unknown,
+                bufferPool: .unknown,
+                recommendations: ["Insufficient data for health assessment"]
+            )
+        }
         
-        exportMetrics = ExportPerformanceMetrics(
-            parallelizationRatio: performanceMetrics.parallelEfficiency,
-            averageExportTime: performanceMetrics.averageExportTime,
-            throughputImprovement: performanceMetrics.throughputImprovement,
-            concurrentJobsCount: performanceMetrics.activeConcurrentJobs
+        let recent = Array(metricsHistory.suffix(10))
+        let avgCPU = recent.map { $0.cpuUsage }.reduce(0, +) / Double(recent.count)
+        let avgMemory = recent.map { $0.memoryUsageMB }.reduce(0, +) / Double(recent.count)
+        let avgLatency = recent.map { $0.transcriptionLatency }.reduce(0, +) / Double(recent.count)
+        
+        let cpuHealth = getHealthStatus(value: avgCPU, threshold: cpuThreshold)
+        let memoryHealth = getHealthStatus(value: avgMemory, threshold: memoryThreshold)
+        let latencyHealth = getHealthStatus(value: avgLatency, threshold: latencyThreshold)
+        
+        // Buffer pool health
+        let bufferPoolHealth: PerformanceHealthStatus.HealthLevel
+        if let bufferStats = recent.compactMap({ $0.audioBufferStats }).last {
+            bufferPoolHealth = bufferStats.poolHitRate > 0.8 ? .good : (bufferStats.poolHitRate > 0.5 ? .warning : .critical)
+        } else {
+            bufferPoolHealth = .unknown
+        }
+        
+        // Overall health
+        let healthLevels = [cpuHealth, memoryHealth, latencyHealth, bufferPoolHealth]
+        let overall: PerformanceHealthStatus.HealthLevel
+        if healthLevels.contains(.critical) {
+            overall = .critical
+        } else if healthLevels.contains(.warning) {
+            overall = .warning
+        } else if healthLevels.allSatisfy({ $0 == .good }) {
+            overall = .good
+        } else {
+            overall = .unknown
+        }
+        
+        return PerformanceHealthStatus(
+            overall: overall,
+            cpu: cpuHealth,
+            memory: memoryHealth,
+            latency: latencyHealth,
+            bufferPool: bufferPoolHealth,
+            recommendations: generateHealthRecommendations(
+                cpu: cpuHealth,
+                memory: memoryHealth,
+                latency: latencyHealth,
+                bufferPool: bufferPoolHealth
+            )
         )
     }
     
-    private func updateMemoryMetrics() async {
-        let memoryMetrics = memoryOptimizer.getCurrentMemoryMetrics()
+    // MARK: - Private Methods
+    
+    private func schedulePeriodicMetricsCollection() async {
+        while isMonitoring {
+            let metrics = await getCurrentMetrics()
+            recordMetrics(metrics)
+            
+            // Check for performance issues
+            await checkForPerformanceIssues(metrics)
+            
+            // Wait 5 seconds before next collection
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+        }
+    }
+    
+    private func recordMetrics(_ metrics: PerformanceMetrics) {
+        metricsHistory.append(metrics)
         
-        self.memoryMetrics = MemoryPerformanceMetrics(
-            currentUsage: memoryMetrics.currentUsage,
-            peakUsage: memoryMetrics.peakUsage,
-            allocationEfficiency: memoryMetrics.efficiency,
-            cacheHitRate: (memoryMetrics.stringBuilderPoolHitRate + memoryMetrics.regexCacheHitRate) / 2.0
+        // Trim history if needed
+        if metricsHistory.count > maxHistorySize {
+            metricsHistory.removeFirst(metricsHistory.count - maxHistorySize)
+        }
+        
+        lastMetricsTime = metrics.timestamp
+    }
+    
+    private func recordAlert(_ alert: PerformanceAlert) {
+        performanceAlerts.append(alert)
+        
+        // Trim alerts if needed
+        if performanceAlerts.count > maxAlertsSize {
+            performanceAlerts.removeFirst(performanceAlerts.count - maxAlertsSize)
+        }
+        
+        logger.warning("📊 Performance alert: \(alert.type.rawValue) - \(alert.message)")
+    }
+    
+    private func checkForPerformanceIssues(_ metrics: PerformanceMetrics) async {
+        // Check CPU usage
+        if metrics.cpuUsage > cpuThreshold {
+            let alert = PerformanceAlert(
+                type: .highCPUUsage,
+                message: "CPU usage is high: \(String(format: "%.1f", metrics.cpuUsage))%",
+                severity: metrics.cpuUsage > 90 ? .critical : .warning,
+                timestamp: Date(),
+                metrics: metrics
+            )
+            recordAlert(alert)
+        }
+        
+        // Check memory usage
+        if metrics.memoryUsageMB > memoryThreshold {
+            let alert = PerformanceAlert(
+                type: .highMemoryUsage,
+                message: "Memory usage is high: \(String(format: "%.1f", metrics.memoryUsageMB))MB",
+                severity: metrics.memoryUsageMB > 1000 ? .critical : .warning,
+                timestamp: Date(),
+                metrics: metrics
+            )
+            recordAlert(alert)
+        }
+        
+        // Check buffer pool efficiency
+        if let bufferStats = metrics.audioBufferStats {
+            if bufferStats.poolHitRate < 0.5 {
+                let alert = PerformanceAlert(
+                    type: .bufferPoolInefficiency,
+                    message: "Buffer pool hit rate is low: \(String(format: "%.1f", bufferStats.poolHitRate * 100))%",
+                    severity: .warning,
+                    timestamp: Date(),
+                    metrics: metrics
+                )
+                recordAlert(alert)
+            }
+        }
+    }
+    
+    private func getCPUUsage() -> Double {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+        
+        let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        
+        if kerr == KERN_SUCCESS {
+            return Double(info.resident_size) / 1024.0 / 1024.0 // Convert to MB for consistent units
+        }
+        
+        return 0.0
+    }
+    
+    private func getMemoryUsage() -> Double {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+        
+        let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        
+        if kerr == KERN_SUCCESS {
+            return Double(info.resident_size) / 1024.0 / 1024.0 // Convert to MB
+        }
+        
+        return 0.0
+    }
+    
+    private func getDiskUsage() -> Double {
+        // Get available disk space
+        do {
+            let fileURL = URL(fileURLWithPath: NSHomeDirectory())
+            let values = try fileURL.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+            if let capacity = values.volumeAvailableCapacityForImportantUsage {
+                return Double(capacity) / 1024.0 / 1024.0 // Convert to MB
+            }
+        } catch {
+            logger.error("📊 Failed to get disk usage: \(error.localizedDescription)")
+        }
+        
+        return 0.0
+    }
+    
+    private func calculateAverageMetrics() async -> PerformanceMetrics {
+        guard !metricsHistory.isEmpty else {
+            return await getCurrentMetrics()
+        }
+        
+        let count = Double(metricsHistory.count)
+        let avgCPU = metricsHistory.map { $0.cpuUsage }.reduce(0, +) / count
+        let avgMemory = metricsHistory.map { $0.memoryUsageMB }.reduce(0, +) / count
+        let avgLatency = metricsHistory.map { $0.transcriptionLatency }.reduce(0, +) / count
+        let avgAudioLatency = metricsHistory.map { $0.audioProcessingLatency }.reduce(0, +) / count
+        let avgOPS = metricsHistory.map { $0.operationsPerSecond }.reduce(0, +) / count
+        
+        return PerformanceMetrics(
+            timestamp: Date(),
+            cpuUsage: avgCPU,
+            memoryUsageMB: avgMemory,
+            diskUsageMB: getDiskUsage(),
+            networkLatency: 0.0,
+            audioBufferStats: await bufferPool?.getStatistics(),
+            transcriptionLatency: avgLatency,
+            audioProcessingLatency: avgAudioLatency,
+            sessionDuration: Date().timeIntervalSince(sessionStartTime),
+            errorCount: 0,
+            operationsPerSecond: avgOPS
         )
     }
     
-    // MARK: - Score Calculation
-    
-    private func calculateOverallScore() {
-        let audioScore = audioMetrics.score
-        let processingScore = processingMetrics.score
-        let exportScore = exportMetrics.score
-        let memoryScore = memoryMetrics.score
-        
-        // Weighted average based on impact
-        overallScore = (audioScore * 0.3) + (processingScore * 0.3) + (exportScore * 0.2) + (memoryScore * 0.2)
-    }
-    
-    private func calculateAsyncEfficiency(throughput: Double) -> Double {
-        // Calculate efficiency based on throughput vs theoretical maximum
-        return min(1.0, throughput / targetProcessingThroughput)
-    }
-    
-    // MARK: - Recommendations Generation
-    
-    private func generateRecommendations() {
-        var newRecommendations: [PerformanceRecommendation] = []
-        
-        // Audio recommendations
-        if audioMetrics.bufferLatency > targetAudioLatency {
-            newRecommendations.append(PerformanceRecommendation(
-                category: .audio,
-                severity: .high,
-                title: "Audio Buffer Latency High",
-                description: "Current latency (\(Int(audioMetrics.bufferLatency * 1000))ms) exceeds target (\(Int(targetAudioLatency * 1000))ms)",
-                action: "Reduce buffer size or implement buffer pooling"
-            ))
+    private func calculatePeakMetrics() async -> PerformanceMetrics {
+        guard !metricsHistory.isEmpty else {
+            return await getCurrentMetrics()
         }
         
-        if audioMetrics.poolHitRate < 0.8 {
-            newRecommendations.append(PerformanceRecommendation(
-                category: .audio,
-                severity: .medium,
-                title: "Buffer Pool Hit Rate Low",
-                description: "Pool hit rate (\(Int(audioMetrics.poolHitRate * 100))%) is below optimal threshold",
-                action: "Increase buffer pool size or adjust buffer lifecycle"
-            ))
-        }
+        let maxCPU = metricsHistory.map { $0.cpuUsage }.max() ?? 0
+        let maxMemory = metricsHistory.map { $0.memoryUsageMB }.max() ?? 0
+        let maxLatency = metricsHistory.map { $0.transcriptionLatency }.max() ?? 0
+        let maxAudioLatency = metricsHistory.map { $0.audioProcessingLatency }.max() ?? 0
+        let maxOPS = metricsHistory.map { $0.operationsPerSecond }.max() ?? 0
         
-        // Processing recommendations
-        if processingMetrics.throughputPerSecond < targetProcessingThroughput {
-            newRecommendations.append(PerformanceRecommendation(
-                category: .async,
-                severity: .medium,
-                title: "Processing Throughput Below Target",
-                description: "Current throughput (\(Int(processingMetrics.throughputPerSecond))) below target (\(Int(targetProcessingThroughput)))",
-                action: "Optimize async processing pipeline or increase concurrency"
-            ))
-        }
-        
-        if processingMetrics.averageLatency > 0.1 {
-            newRecommendations.append(PerformanceRecommendation(
-                category: .async,
-                severity: .high,
-                title: "Processing Latency High",
-                description: "Average latency (\(Int(processingMetrics.averageLatency * 1000))ms) impacts user experience",
-                action: "Eliminate polling patterns and optimize async operations"
-            ))
-        }
-        
-        // Export recommendations
-        if exportMetrics.parallelizationRatio < targetParallelization {
-            newRecommendations.append(PerformanceRecommendation(
-                category: .export,
-                severity: .medium,
-                title: "Export Parallelization Underutilized",
-                description: "Parallelization ratio (\(String(format: "%.1f", exportMetrics.parallelizationRatio))) below target",
-                action: "Increase concurrent export jobs or optimize job scheduling"
-            ))
-        }
-        
-        // Memory recommendations
-        if memoryMetrics.currentUsage > targetMemoryUsage {
-            newRecommendations.append(PerformanceRecommendation(
-                category: .memory,
-                severity: memoryMetrics.currentUsage > targetMemoryUsage * 2 ? .critical : .high,
-                title: "High Memory Usage",
-                description: "Current usage (\(ByteCountFormatter.string(fromByteCount: memoryMetrics.currentUsage, countStyle: .memory))) exceeds target",
-                action: "Optimize string concatenation and implement memory pooling"
-            ))
-        }
-        
-        if memoryMetrics.cacheHitRate < 0.8 {
-            newRecommendations.append(PerformanceRecommendation(
-                category: .memory,
-                severity: .medium,
-                title: "Cache Hit Rate Low",
-                description: "Cache hit rate (\(Int(memoryMetrics.cacheHitRate * 100))%) indicates inefficient caching",
-                action: "Optimize cache size or improve cache key strategies"
-            ))
-        }
-        
-        recommendations = newRecommendations
-    }
-    
-    // MARK: - Performance Reports
-    
-    public func generatePerformanceReport() -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        
-        return """
-        VoiceFlow Performance Report
-        Generated: \(formatter.string(from: Date()))
-        
-        OVERALL SCORE: \(String(format: "%.1f", overallScore * 100))%
-        
-        AUDIO PROCESSING:
-        - Latency: \(String(format: "%.1f", audioMetrics.bufferLatency * 1000))ms (Target: \(String(format: "%.1f", targetAudioLatency * 1000))ms)
-        - Buffer Pool Hit Rate: \(String(format: "%.1f", audioMetrics.poolHitRate * 100))%
-        - Score: \(String(format: "%.1f", audioMetrics.score * 100))%
-        
-        ASYNC PROCESSING:
-        - Throughput: \(String(format: "%.1f", processingMetrics.throughputPerSecond))/sec
-        - Average Latency: \(String(format: "%.1f", processingMetrics.averageLatency * 1000))ms
-        - Quality Score: \(String(format: "%.1f", processingMetrics.qualityScore * 100))%
-        - Score: \(String(format: "%.1f", processingMetrics.score * 100))%
-        
-        EXPORT PERFORMANCE:
-        - Parallelization Ratio: \(String(format: "%.1f", exportMetrics.parallelizationRatio))x
-        - Average Export Time: \(String(format: "%.1f", exportMetrics.averageExportTime))s
-        - Throughput Improvement: \(String(format: "%.1f", exportMetrics.throughputImprovement * 100))%
-        - Score: \(String(format: "%.1f", exportMetrics.score * 100))%
-        
-        MEMORY USAGE:
-        - Current: \(ByteCountFormatter.string(fromByteCount: memoryMetrics.currentUsage, countStyle: .memory))
-        - Peak: \(ByteCountFormatter.string(fromByteCount: memoryMetrics.peakUsage, countStyle: .memory))
-        - Cache Hit Rate: \(String(format: "%.1f", memoryMetrics.cacheHitRate * 100))%
-        - Score: \(String(format: "%.1f", memoryMetrics.score * 100))%
-        
-        RECOMMENDATIONS:
-        \(recommendations.map { "- [\($0.severity.rawValue)] \($0.title): \($0.action)" }.joined(separator: "\n"))
-        """
-    }
-    
-    public func exportMetricsToJSON() throws -> Data {
-        let exportData = [
-            "timestamp": Date().timeIntervalSince1970,
-            "overallScore": overallScore,
-            "audioMetrics": audioMetrics,
-            "processingMetrics": processingMetrics,
-            "exportMetrics": exportMetrics,
-            "memoryMetrics": memoryMetrics,
-            "recommendations": recommendations
-        ] as [String: Any]
-        
-        return try JSONSerialization.data(withJSONObject: exportData, options: .prettyPrinted)
-    }
-    
-    // MARK: - Performance Benchmarking
-    
-    public func runPerformanceBenchmark() async -> BenchmarkResults {
-        let startTime = CFAbsoluteTimeGetCurrent()
-        
-        // Run benchmarks for each component
-        let audioBenchmark = await benchmarkAudioProcessing()
-        let processingBenchmark = await benchmarkAsyncProcessing()
-        let exportBenchmark = await benchmarkParallelExport()
-        let memoryBenchmark = await benchmarkMemoryOperations()
-        
-        let totalTime = CFAbsoluteTimeGetCurrent() - startTime
-        
-        return BenchmarkResults(
-            audioScore: audioBenchmark,
-            processingScore: processingBenchmark,
-            exportScore: exportBenchmark,
-            memoryScore: memoryBenchmark,
-            totalTime: totalTime
+        return PerformanceMetrics(
+            timestamp: Date(),
+            cpuUsage: maxCPU,
+            memoryUsageMB: maxMemory,
+            diskUsageMB: getDiskUsage(),
+            networkLatency: 0.0,
+            audioBufferStats: await bufferPool?.getStatistics(),
+            transcriptionLatency: maxLatency,
+            audioProcessingLatency: maxAudioLatency,
+            sessionDuration: Date().timeIntervalSince(sessionStartTime),
+            errorCount: 0,
+            operationsPerSecond: maxOPS
         )
     }
     
-    private func benchmarkAudioProcessing() async -> Double {
-        // Benchmark audio buffer operations
-        return 0.85 // Placeholder
-    }
-    
-    private func benchmarkAsyncProcessing() async -> Double {
-        // Benchmark async transcription processing
-        return 0.90 // Placeholder
-    }
-    
-    private func benchmarkParallelExport() async -> Double {
-        // Benchmark parallel export operations
-        return 0.88 // Placeholder
-    }
-    
-    private func benchmarkMemoryOperations() async -> Double {
-        // Benchmark memory optimization operations
-        return 0.92 // Placeholder
-    }
-    
-    public struct BenchmarkResults {
-        public let audioScore: Double
-        public let processingScore: Double
-        public let exportScore: Double
-        public let memoryScore: Double
-        public let totalTime: TimeInterval
+    private func generateRecommendations(average: PerformanceMetrics, peak: PerformanceMetrics) -> [String] {
+        var recommendations: [String] = []
         
-        public var overallScore: Double {
-            return (audioScore + processingScore + exportScore + memoryScore) / 4.0
+        if average.cpuUsage > 50 {
+            recommendations.append("Consider optimizing CPU-intensive operations")
         }
+        
+        if average.memoryUsageMB > 300 {
+            recommendations.append("Monitor memory usage and consider optimization")
+        }
+        
+        if average.transcriptionLatency > 1.0 {
+            recommendations.append("Network latency is affecting transcription performance")
+        }
+        
+        if let bufferStats = average.audioBufferStats {
+            if bufferStats.poolHitRate < 0.8 {
+                recommendations.append("Audio buffer pool could be optimized for better performance")
+            }
+            
+            if bufferStats.memoryUsageMB > 50 {
+                recommendations.append("Consider reducing buffer pool size to save memory")
+            }
+        }
+        
+        if average.operationsPerSecond > 100 {
+            recommendations.append("High operation rate detected - consider batching operations")
+        }
+        
+        if recommendations.isEmpty {
+            recommendations.append("Performance is within acceptable ranges")
+        }
+        
+        return recommendations
+    }
+    
+    private func getHealthStatus(value: Double, threshold: Double) -> PerformanceHealthStatus.HealthLevel {
+        if value > threshold {
+            return .critical
+        } else if value > threshold * 0.7 {
+            return .warning
+        } else {
+            return .good
+        }
+    }
+    
+    private func generateHealthRecommendations(
+        cpu: PerformanceHealthStatus.HealthLevel,
+        memory: PerformanceHealthStatus.HealthLevel,
+        latency: PerformanceHealthStatus.HealthLevel,
+        bufferPool: PerformanceHealthStatus.HealthLevel
+    ) -> [String] {
+        var recommendations: [String] = []
+        
+        if cpu == .critical {
+            recommendations.append("High CPU usage detected - consider closing other applications")
+        }
+        
+        if memory == .critical {
+            recommendations.append("High memory usage detected - restart the app or reduce session length")
+        }
+        
+        if latency == .critical {
+            recommendations.append("High latency detected - check network connection")
+        }
+        
+        if bufferPool == .critical {
+            recommendations.append("Buffer pool performance is poor - consider optimizing audio settings")
+        }
+        
+        if recommendations.isEmpty {
+            recommendations.append("System performance is healthy")
+        }
+        
+        return recommendations
+    }
+}
+
+// MARK: - Supporting Types
+
+public struct PerformanceHealthStatus: Sendable {
+    public enum HealthLevel: String, CaseIterable, Codable, Sendable {
+        case good = "Good"
+        case warning = "Warning"
+        case critical = "Critical"
+        case unknown = "Unknown"
+        
+        public var color: String {
+            switch self {
+            case .good: return "green"
+            case .warning: return "orange"
+            case .critical: return "red"
+            case .unknown: return "gray"
+            }
+        }
+    }
+    
+    public let overall: HealthLevel
+    public let cpu: HealthLevel
+    public let memory: HealthLevel
+    public let latency: HealthLevel
+    public let bufferPool: HealthLevel
+    public let recommendations: [String]
+    
+    public init(
+        overall: HealthLevel,
+        cpu: HealthLevel,
+        memory: HealthLevel,
+        latency: HealthLevel,
+        bufferPool: HealthLevel,
+        recommendations: [String]
+    ) {
+        self.overall = overall
+        self.cpu = cpu
+        self.memory = memory
+        self.latency = latency
+        self.bufferPool = bufferPool
+        self.recommendations = recommendations
+    }
+}
+
+// MARK: - Codable Extensions
+
+extension AudioBufferPool.PoolStatistics: Codable {
+    enum CodingKeys: String, CodingKey {
+        case totalBuffers, availableBuffers, allocatedBuffers, poolHitRate, memoryUsageMB, peakMemoryUsageMB
+    }
+    
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(totalBuffers, forKey: .totalBuffers)
+        try container.encode(availableBuffers, forKey: .availableBuffers)
+        try container.encode(allocatedBuffers, forKey: .allocatedBuffers)
+        try container.encode(poolHitRate, forKey: .poolHitRate)
+        try container.encode(memoryUsageMB, forKey: .memoryUsageMB)
+        try container.encode(peakMemoryUsageMB, forKey: .peakMemoryUsageMB)
+    }
+    
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.totalBuffers = try container.decode(Int.self, forKey: .totalBuffers)
+        self.availableBuffers = try container.decode(Int.self, forKey: .availableBuffers)
+        self.allocatedBuffers = try container.decode(Int.self, forKey: .allocatedBuffers)
+        self.poolHitRate = try container.decode(Double.self, forKey: .poolHitRate)
+        self.memoryUsageMB = try container.decode(Double.self, forKey: .memoryUsageMB)
+        self.peakMemoryUsageMB = try container.decode(Double.self, forKey: .peakMemoryUsageMB)
     }
 }

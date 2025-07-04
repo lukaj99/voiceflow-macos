@@ -1,7 +1,7 @@
 import XCTest
 import AppKit
 import Combine
-@testable import VoiceFlowUI
+@testable import VoiceFlow
 
 class MenuBarControllerTests: XCTestCase {
     var controller: MenuBarController!

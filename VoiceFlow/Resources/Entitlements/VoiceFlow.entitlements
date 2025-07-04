@@ -2,44 +2,85 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- App Sandbox -->
+    <!-- App Sandbox (Required for App Store and 2025 security standards) -->
     <key>com.apple.security.app-sandbox</key>
     <true/>
     
-    <!-- Microphone access for transcription -->
+    <!-- Hardened Runtime (Required for notarization and enhanced security) -->
+    <key>com.apple.security.hardened-runtime</key>
+    <true/>
+    
+    <!-- CORE PERMISSIONS -->
+    
+    <!-- Microphone access for voice transcription -->
     <key>com.apple.security.device.audio-input</key>
     <true/>
     
-    <!-- File access for exports -->
-    <key>com.apple.security.files.user-selected.read-write</key>
-    <true/>
-    
-    <!-- Network for optional cloud sync -->
+    <!-- Network access for Deepgram API communication -->
     <key>com.apple.security.network.client</key>
     <true/>
     
-    <!-- For context awareness (optional feature) -->
+    <!-- File access for user-selected export locations -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    
+    <!-- Accessibility access for global text insertion -->
+    <key>com.apple.security.temporary-exception.mach-register.global-name</key>
+    <string>com.apple.accessibility.api</string>
+    
+    <!-- KEYCHAIN & SECURITY -->
+    
+    <!-- Keychain access for secure credential storage -->
+    <key>keychain-access-groups</key>
+    <array>
+        <string>$(TeamIdentifierPrefix)com.voiceflow.credentials</string>
+    </array>
+    
+    <!-- MINIMAL APPLE EVENTS (Reduced from original for security) -->
+    
+    <!-- Limited Apple Events for essential productivity app integration -->
     <key>com.apple.security.automation.apple-events</key>
     <true/>
     
-    <!-- Apple Events exceptions for specific apps -->
+    <!-- Minimal Apple Events exceptions for core productivity apps -->
     <key>com.apple.security.temporary-exception.apple-events</key>
     <array>
+        <!-- Text editors and IDEs -->
         <string>com.microsoft.VSCode</string>
         <string>com.apple.dt.Xcode</string>
-        <string>com.jetbrains.intellij</string>
+        
+        <!-- Communication apps -->
         <string>com.apple.mail</string>
         <string>com.tinyspeck.slackmacgap</string>
-        <string>com.readdle.SparkDesktop</string>
-        <string>com.microsoft.teams2</string>
         <string>us.zoom.xos</string>
+        
+        <!-- Note-taking apps -->
         <string>com.apple.Notes</string>
         <string>md.obsidian</string>
-        <string>com.microsoft.Word</string>
     </array>
     
-    <!-- Hardened Runtime -->
-    <key>com.apple.security.hardened-runtime</key>
-    <true/>
+    <!-- LIBRARY VALIDATION (Enhanced security) -->
+    
+    <!-- Enable library validation to prevent code injection -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <false/>
+    
+    <!-- Disable unsigned executable memory for security -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <false/>
+    
+    <!-- Disable JIT for enhanced security -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+    
+    <!-- PRIVACY DECLARATIONS -->
+    
+    <!-- Privacy usage description for microphone -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>VoiceFlow needs microphone access to transcribe your speech in real-time. Audio is processed securely and never stored without your permission.</string>
+    
+    <!-- Privacy usage description for AppleEvents (if needed) -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>VoiceFlow can integrate with productivity apps to automatically insert transcribed text where you're working.</string>
 </dict>
 </plist>

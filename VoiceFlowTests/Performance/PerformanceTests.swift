@@ -1,6 +1,6 @@
 import XCTest
 import os.log
-@testable import VoiceFlowCore
+@testable import VoiceFlow
 
 class PerformanceTests: XCTestCase {
     let performanceMonitor = PerformanceMonitor.shared
