@@ -12,6 +12,7 @@ public struct SettingsView: View {
     
     @State private var showingAPIKeyConfiguration = false
     @State private var showingHotkeyConfiguration = false
+    @State private var showingLLMAPIKeyConfiguration = false
     @State private var isTestingCredentials = false
     @State private var testResult: String?
     @State private var globalHotkeysEnabled = true
@@ -84,6 +85,122 @@ public struct SettingsView: View {
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
+                }
+                
+                // LLM Post-Processing Section
+                Section(header: Text("LLM Enhancement")) {
+                    Toggle("Enable LLM Post-Processing", isOn: Binding(
+                        get: { AppState.shared.llmPostProcessingEnabled },
+                        set: { enabled in
+                            if enabled {
+                                AppState.shared.enableLLMPostProcessing()
+                            } else {
+                                AppState.shared.disableLLMPostProcessing()
+                            }
+                        }
+                    ))
+                    
+                    if AppState.shared.llmPostProcessingEnabled {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Improves transcription accuracy with grammar correction, punctuation, and word substitution (e.g., 'slash' → '/')")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            // LLM Provider Selection
+                            HStack {
+                                Text("Provider:")
+                                    .font(.caption)
+                                Spacer()
+                                Picker("Provider", selection: Binding(
+                                    get: { AppState.shared.selectedLLMProvider },
+                                    set: { provider in AppState.shared.selectedLLMProvider = provider }
+                                )) {
+                                    Text("OpenAI GPT").tag("openai")
+                                    Text("Anthropic Claude").tag("claude")
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .fixedSize()
+                            }
+                            
+                            // Model Selection
+                            HStack {
+                                Text("Model:")
+                                    .font(.caption)
+                                Spacer()
+                                Picker("Model", selection: Binding(
+                                    get: { AppState.shared.selectedLLMModel },
+                                    set: { model in AppState.shared.selectedLLMModel = model }
+                                )) {
+                                    if AppState.shared.selectedLLMProvider == "openai" {
+                                        Text("GPT-4o Mini (Recommended)").tag("gpt-4o-mini")
+                                        Text("GPT-4o").tag("gpt-4o")
+                                    } else {
+                                        Text("Claude 3 Haiku (Recommended)").tag("claude-3-haiku-20240307")
+                                        Text("Claude 3 Sonnet").tag("claude-3-sonnet-20240229")
+                                    }
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .fixedSize()
+                            }
+                            
+                            // Configuration Status
+                            HStack {
+                                Image(systemName: AppState.shared.hasLLMProvidersConfigured ? 
+                                      "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                                    .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
+                                
+                                Text(AppState.shared.hasLLMProvidersConfigured ? 
+                                     "LLM providers configured" : 
+                                     "LLM API key required")
+                                    .font(.caption)
+                                    .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
+                            }
+                            
+                            // Processing Status
+                            if AppState.shared.isLLMProcessing {
+                                HStack {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                    Text("Processing with LLM...")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            
+                            // Error Display
+                            if let error = AppState.shared.llmProcessingError {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.red)
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            
+                            // Statistics
+                            let stats = AppState.shared.llmProcessingStats
+                            if stats.totalProcessed > 0 {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Statistics:")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    Text("Processed: \(stats.totalProcessed), Success: \(String(format: "%.1f", stats.successRate * 100))%")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("Avg Processing: \(String(format: "%.1f", stats.averageProcessingTime))s")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding(.leading, 8)
+                    }
+                    
+                    Button("Configure LLM API Keys") {
+                        showingLLMAPIKeyConfiguration = true
+                    }
+                    .disabled(isTestingCredentials)
                 }
                 
                 // Features Section
@@ -170,6 +287,15 @@ public struct SettingsView: View {
                 } else {
                     Text("Hotkey service not available")
                         .padding()
+                }
+            }
+            .sheet(isPresented: $showingLLMAPIKeyConfiguration) {
+                LLMAPIKeyConfigurationView {
+                    // Refresh LLM configuration status when keys are updated
+                    Task {
+                        // Update configuration status
+                        AppState.shared.updateLLMConfigurationStatus(true)
+                    }
                 }
             }
             .onAppear {

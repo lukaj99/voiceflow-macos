@@ -42,6 +42,7 @@ Package.resolved
 # SPM
 .swiftpm/
 .build/
+Packages/
 
 # Xcode
 *.pbxuser

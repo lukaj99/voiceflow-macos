@@ -160,10 +160,6 @@ public class GlobalTextInputCoordinator: ObservableObject {
                 
                 return .insertionFailed(error)
             }
-            
-        } catch {
-            setPermissionError("Unexpected error during text insertion: \(error.localizedDescription)")
-            return .insertionFailed(error)
         }
     }
     

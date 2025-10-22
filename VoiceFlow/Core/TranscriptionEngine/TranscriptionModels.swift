@@ -96,13 +96,13 @@ public struct TranscriptionSegment: Codable, Sendable {
     public let text: String
     public let startTime: TimeInterval
     public let endTime: TimeInterval
-    public let confidence: Double
+    public let confidence: Float
     
     public var duration: TimeInterval {
         endTime - startTime
     }
     
-    public init(text: String, startTime: TimeInterval, endTime: TimeInterval, confidence: Double) {
+    public init(text: String, startTime: TimeInterval, endTime: TimeInterval, confidence: Float) {
         self.text = text
         self.startTime = startTime
         self.endTime = endTime
@@ -151,14 +151,14 @@ public enum Language: String, CaseIterable, Codable, Sendable {
 public struct TranscriptionSession: Codable, Identifiable, Sendable {
     public let id: UUID
     public let startTime: Date
-    public let endTime: Date?
+    public var endTime: Date?
     public let duration: TimeInterval
     public let wordCount: Int
     public let averageConfidence: Double
     public let context: String // Serialized AppContext
-    public let transcription: String
+    public var transcription: String
     public let metadata: Metadata
-    public let segments: [TranscriptionSegment]
+    public var segments: [TranscriptionSegment]
     public let createdAt: Date
     public let language: Language
     
@@ -214,8 +214,8 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
         averageConfidence: Double = 0,
         context: String = "general",
         transcription: String = "",
-        metadata: Metadata = Metadata(),
         segments: [TranscriptionSegment] = [],
+        metadata: Metadata = Metadata(),
         createdAt: Date = Date(),
         language: Language = .english
     ) {
@@ -232,7 +232,11 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
         self.createdAt = createdAt
         self.language = language
     }
+
 }
+
+// Backwards compatibility alias for tests and external references
+public typealias SessionMetadata = TranscriptionSession.Metadata
 
 // MARK: - Privacy Models
 

@@ -1,5 +1,5 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 import AsyncAlgorithms
 
 /// Modern audio manager using Swift 6 actor isolation for safe audio processing
@@ -30,14 +30,10 @@ public class AudioManager: ObservableObject {
         // Stream audio levels from the processor to UI in background task
         Task { [weak self] in
             guard let self = self else { return }
-            do {
-                for await level in await audioProcessor.audioLevelStream {
-                    await MainActor.run { [weak self] in
-                        self?.audioLevel = level
-                    }
+            for await level in audioProcessor.audioLevelStream {
+                await MainActor.run { [weak self] in
+                    self?.audioLevel = level
                 }
-            } catch {
-                print("❌ Audio streaming error: \(error)")
             }
         }
     }

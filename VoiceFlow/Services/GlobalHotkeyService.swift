@@ -77,40 +77,29 @@ public class GlobalHotkeyService: ObservableObject {
     public func configureToggleHotkey(key: Key, modifiers: NSEvent.ModifierFlags) {
         removeToggleHotkey()
         
-        do {
-            toggleWidgetHotkey = HotKey(key: key, modifiers: modifiers)
-            toggleWidgetHotkey?.keyDownHandler = { [weak self] in
-                Task { @MainActor in
-                    self?.handleToggleWidget()
-                }
+        toggleWidgetHotkey = HotKey(key: key, modifiers: modifiers)
+        toggleWidgetHotkey?.keyDownHandler = { [weak self] in
+            Task { @MainActor in
+                self?.handleToggleWidget()
             }
-            
-            hotkeyStatus = "Custom hotkey configured"
-            print("⌨️ Toggle hotkey configured: \(modifiersString(modifiers)) + \(key)")
-            
-        } catch {
-            hotkeyStatus = "Failed to configure hotkey"
-            print("❌ Failed to configure toggle hotkey: \(error)")
         }
+        
+        hotkeyStatus = "Custom hotkey configured"
+        print("⌨️ Toggle hotkey configured: \(modifiersString(modifiers)) + \(key)")
     }
     
     /// Configure custom hotkey for quick record
     public func configureQuickRecordHotkey(key: Key, modifiers: NSEvent.ModifierFlags) {
         removeQuickRecordHotkey()
         
-        do {
-            quickRecordHotkey = HotKey(key: key, modifiers: modifiers)
-            quickRecordHotkey?.keyDownHandler = { [weak self] in
-                Task { @MainActor in
-                    self?.handleQuickRecord()
-                }
+        quickRecordHotkey = HotKey(key: key, modifiers: modifiers)
+        quickRecordHotkey?.keyDownHandler = { [weak self] in
+            Task { @MainActor in
+                self?.handleQuickRecord()
             }
-            
-            print("⌨️ Quick record hotkey configured: \(modifiersString(modifiers)) + \(key)")
-            
-        } catch {
-            print("❌ Failed to configure quick record hotkey: \(error)")
         }
+        
+        print("⌨️ Quick record hotkey configured: \(modifiersString(modifiers)) + \(key)")
     }
     
     /// Get current hotkey configuration info
@@ -170,36 +159,24 @@ public class GlobalHotkeyService: ObservableObject {
         guard isEnabled else { return }
         
         // Setup toggle widget hotkey (Cmd+Option+Space)
-        do {
-            toggleWidgetHotkey = HotKey(key: defaultToggleKey, modifiers: defaultToggleModifiers)
-            toggleWidgetHotkey?.keyDownHandler = { [weak self] in
-                Task { @MainActor in
-                    self?.handleToggleWidget()
-                }
+        toggleWidgetHotkey = HotKey(key: defaultToggleKey, modifiers: defaultToggleModifiers)
+        toggleWidgetHotkey?.keyDownHandler = { [weak self] in
+            Task { @MainActor in
+                self?.handleToggleWidget()
             }
-            
-            print("⌨️ Toggle widget hotkey registered: ⌘⌥Space")
-            
-        } catch {
-            print("❌ Failed to register toggle widget hotkey: \(error)")
-            hotkeyStatus = "Failed to register hotkeys"
-            return
         }
         
+        print("⌨️ Toggle widget hotkey registered: ⌘⌥Space")
+        
         // Setup quick record hotkey (Cmd+Shift+R)
-        do {
-            quickRecordHotkey = HotKey(key: defaultQuickRecordKey, modifiers: defaultQuickRecordModifiers)
-            quickRecordHotkey?.keyDownHandler = { [weak self] in
-                Task { @MainActor in
-                    self?.handleQuickRecord()
-                }
+        quickRecordHotkey = HotKey(key: defaultQuickRecordKey, modifiers: defaultQuickRecordModifiers)
+        quickRecordHotkey?.keyDownHandler = { [weak self] in
+            Task { @MainActor in
+                self?.handleQuickRecord()
             }
-            
-            print("⌨️ Quick record hotkey registered: ⌘⇧R")
-            
-        } catch {
-            print("❌ Failed to register quick record hotkey: \(error)")
         }
+        
+        print("⌨️ Quick record hotkey registered: ⌘⇧R")
         
         hotkeyStatus = "Default hotkeys active"
     }

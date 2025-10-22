@@ -42,7 +42,7 @@ public final actor MockTranscriptionEngine: Sendable {
     
     // MARK: - Types
     
-    public enum EngineState: Sendable {
+    public enum EngineState: Sendable, Equatable {
         case idle
         case preparing
         case recording

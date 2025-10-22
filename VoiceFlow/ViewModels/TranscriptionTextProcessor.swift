@@ -1,7 +1,27 @@
 import Foundation
 
-/// Processes and enhances transcription text
-/// Single Responsibility: Text processing, medical terminology detection, and model optimization
+// MARK: - LLM State Coordination Protocol
+
+@MainActor
+public protocol LLMProcessingStateManaging: AnyObject {
+    var llmPostProcessingEnabled: Bool { get set }
+    var hasLLMProvidersConfigured: Bool { get set }
+    var isLLMProcessing: Bool { get set }
+    func enableLLMPostProcessing()
+    func disableLLMPostProcessing()
+    func setLLMProcessing(_ processing: Bool, progress: Float)
+    func setLLMProcessingError(_ error: String?)
+    func setSelectedLLMProvider(_ provider: String, model: String)
+    func updateLLMConfigurationStatus(_ hasProviders: Bool)
+    func recordLLMProcessingResult(
+        success: Bool,
+        processingTime: TimeInterval,
+        improvementScore: Float
+    )
+}
+
+/// Processes and enhances transcription text with LLM post-processing
+/// Single Responsibility: Text processing, medical terminology detection, model optimization, and LLM enhancement
 public actor TranscriptionTextProcessor {
     
     // MARK: - Types
@@ -38,19 +58,30 @@ public actor TranscriptionTextProcessor {
     
     // MARK: - Properties
     
-    private var processingStats = ProcessingStatistics()
+    private var processingStats = TranscriptionProcessingStatistics()
     private let medicalTermsDetector = MedicalTerminologyDetector()
     private let textCleaner = TranscriptionTextCleaner()
+    private let llmService: LLMPostProcessingService
+    private nonisolated(unsafe) let appState: any LLMProcessingStateManaging
     
     // MARK: - Initialization
     
-    public init() {
-        print("🧠 TranscriptionTextProcessor initialized")
+    public init(llmService: LLMPostProcessingService, appState: any LLMProcessingStateManaging) {
+        self.llmService = llmService
+        self.appState = appState
+        print("🧠 TranscriptionTextProcessor initialized with LLM support")
+    }
+
+    /// Create a new TranscriptionTextProcessor with default dependencies
+    public static func createDefault() async -> TranscriptionTextProcessor {
+        let llmService = await MainActor.run { LLMPostProcessingService() }
+        let appState = await MainActor.run { AppState.shared }
+        return TranscriptionTextProcessor(llmService: llmService, appState: appState)
     }
     
     // MARK: - Public Interface
     
-    /// Process transcript text with domain detection and optimization
+    /// Process transcript text with domain detection, optimization, and optional LLM enhancement
     public func processTranscript(_ text: String, isFinal: Bool) async -> String {
         // Clean and sanitize the text
         let cleanedText = await textCleaner.cleanText(text)
@@ -58,15 +89,22 @@ public actor TranscriptionTextProcessor {
         // Update processing statistics
         processingStats.totalTextsProcessed += 1
         
+        var finalText = cleanedText
+        
         if isFinal {
             // Perform domain detection for final text
             let domain = await detectTextDomain(cleanedText)
             processingStats.updateDomainStats(for: domain)
             
             print("🧠 Text domain detected: \(domain)")
+            
+            // Apply LLM post-processing if enabled and configured
+            if await shouldApplyLLMProcessing() {
+                finalText = await applyLLMPostProcessing(cleanedText, domain: domain)
+            }
         }
         
-        return cleanedText
+        return finalText
     }
     
     /// Analyze text and suggest optimal model
@@ -86,8 +124,148 @@ public actor TranscriptionTextProcessor {
     }
     
     /// Get current processing statistics
-    public func getProcessingStatistics() async -> ProcessingStatistics {
+    public func getProcessingStatistics() async -> TranscriptionProcessingStatistics {
         return processingStats
+    }
+    
+    // MARK: - LLM Integration Methods
+    
+    /// Check if LLM processing should be applied
+    private func shouldApplyLLMProcessing() async -> Bool {
+        // Get current state from main actor
+        return await MainActor.run {
+            return appState.llmPostProcessingEnabled && 
+                   appState.hasLLMProvidersConfigured && 
+                   !appState.isLLMProcessing
+        }
+    }
+    
+    /// Apply LLM post-processing to the text
+    private func applyLLMPostProcessing(_ text: String, domain: TextDomain) async -> String {
+        // Skip processing for very short text
+        guard text.count > 10 else { return text }
+        
+        // Update app state to show processing
+        await MainActor.run {
+            appState.setLLMProcessing(true, progress: 0.0)
+        }
+        
+        let startTime = Date()
+        
+        do {
+            // Build context information based on detected domain
+            let context = buildContextForDomain(domain)
+            
+            // Process with LLM service
+            let result = await llmService.processTranscription(text, context: context)
+            
+            switch result {
+            case .success(let processingResult):
+                let processingTime = Date().timeIntervalSince(startTime)
+                
+                // Update app state with success
+                await MainActor.run {
+                    appState.setLLMProcessing(false, progress: 1.0)
+                    appState.recordLLMProcessingResult(
+                        success: true,
+                        processingTime: processingTime,
+                        improvementScore: processingResult.improvementScore
+                    )
+                }
+                
+                // Log improvements
+                if !processingResult.changes.isEmpty {
+                    print("🤖 LLM enhanced text with \(processingResult.changes.count) improvements")
+                    for change in processingResult.changes {
+                        print("  - \(change.type): \(change.original) → \(change.replacement)")
+                    }
+                }
+                
+                return processingResult.processedText
+                
+            case .failure(let error):
+                let processingTime = Date().timeIntervalSince(startTime)
+                
+                // Update app state with error
+                await MainActor.run {
+                    appState.setLLMProcessingError(error.localizedDescription)
+                    appState.recordLLMProcessingResult(
+                        success: false,
+                        processingTime: processingTime,
+                        improvementScore: 0.0
+                    )
+                }
+                
+                print("❌ LLM processing failed: \(error.localizedDescription)")
+                return text // Return original text on error
+            }
+            
+        }
+    }
+    
+    /// Build context information for LLM processing based on detected domain
+    private func buildContextForDomain(_ domain: TextDomain) -> String {
+        switch domain {
+        case .medical:
+            return "Medical/healthcare context with medical terminology"
+        case .technical:
+            return "Technical/programming context with technical terminology"
+        case .legal:
+            return "Legal context with legal terminology"
+        case .financial:
+            return "Financial/business context with financial terminology"
+        case .general:
+            return "General conversation context"
+        }
+    }
+    
+    /// Configure LLM service with current settings
+    public func configureLLMService(provider: LLMProvider, model: String, apiKey: String) async {
+        // Extract values outside MainActor to avoid data races
+        let providerRawValue = provider.rawValue
+        let providerDisplayName = provider.displayName
+        
+        await MainActor.run {
+            // Convert string to LLMModel enum
+            if let llmModel = LLMPostProcessingService.LLMModel(rawValue: model) {
+                llmService.selectedModel = llmModel
+            }
+            
+            // Convert to LLMPostProcessingService.LLMProvider
+            let serviceProvider = LLMPostProcessingService.LLMProvider(rawValue: providerRawValue) ?? .openAI
+            llmService.configureAPIKey(apiKey, for: serviceProvider)
+            
+            // Update app state
+            appState.setSelectedLLMProvider(providerRawValue, model: model)
+            appState.updateLLMConfigurationStatus(llmService.isConfigured(for: serviceProvider))
+        }
+        
+        print("🤖 LLM service configured: \(providerDisplayName) - \(model)")
+    }
+    
+    /// Enable LLM post-processing
+    public func enableLLMProcessing() async {
+        await MainActor.run {
+            llmService.isEnabled = true
+            appState.enableLLMPostProcessing()
+        }
+        
+        print("🤖 LLM post-processing enabled")
+    }
+    
+    /// Disable LLM post-processing
+    public func disableLLMProcessing() async {
+        await MainActor.run {
+            llmService.isEnabled = false
+            appState.disableLLMPostProcessing()
+        }
+        
+        print("🤖 LLM post-processing disabled")
+    }
+    
+    /// Get LLM processing statistics  
+    public func getLLMStatistics() async -> LLMProcessingStatistics {
+        return await llmService.getStatistics()
     }
     
     // MARK: - Private Methods
@@ -230,7 +408,7 @@ public actor TranscriptionTextCleaner {
 
 // MARK: - Supporting Types
 
-public struct ProcessingStatistics: Sendable {
+public struct TranscriptionProcessingStatistics: Sendable {
     public var totalTextsProcessed: Int = 0
     public var medicalTextsDetected: Int = 0
     public var technicalTextsDetected: Int = 0

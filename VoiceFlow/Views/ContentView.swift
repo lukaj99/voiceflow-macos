@@ -53,6 +53,31 @@ public struct ContentView: View {
                         .foregroundColor(viewModel.isConfigured ? .secondary : .orange)
                 }
                 
+                // LLM Processing Status
+                if AppState.shared.llmPostProcessingEnabled {
+                    HStack {
+                        Image(systemName: AppState.shared.hasLLMProvidersConfigured ? "brain.head.profile.fill" : "brain.head.profile")
+                            .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .purple : .gray)
+                        
+                        if AppState.shared.isLLMProcessing {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                Text("Enhancing with LLM...")
+                                    .font(.caption)
+                                    .foregroundColor(.purple)
+                            }
+                        } else {
+                            Text(AppState.shared.hasLLMProvidersConfigured ? 
+                                 "LLM enhancement ready" : 
+                                 "LLM enhancement requires API key")
+                                .font(.caption)
+                                .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .purple : .gray)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.3), value: AppState.shared.isLLMProcessing)
+                }
+                
                 // Main Controls
                 HStack(spacing: 20) {
                     // Settings Button
@@ -114,6 +139,25 @@ public struct ContentView: View {
                     Text(errorMessage)
                         .font(.caption)
                         .foregroundColor(.orange)
+                }
+                .padding(.horizontal)
+            }
+            
+            // LLM Error Display
+            if let llmError = AppState.shared.llmProcessingError {
+                HStack {
+                    Image(systemName: "brain.head.profile")
+                        .foregroundColor(.red)
+                    Text("LLM Enhancement Error: \(llmError)")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    
+                    Button("Dismiss") {
+                        AppState.shared.setLLMProcessingError(nil)
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                    .foregroundColor(.blue)
                 }
                 .padding(.horizontal)
             }

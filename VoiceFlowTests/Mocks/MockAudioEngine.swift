@@ -321,7 +321,7 @@ public struct MockAudioEngineFactory {
     }
     
     public static func createRecordingEngine() async throws -> MockAudioEngine {
-        let engine = await createRunningEngine()
+        let engine = try await createRunningEngine()
         try await engine.startRecording()
         return engine
     }

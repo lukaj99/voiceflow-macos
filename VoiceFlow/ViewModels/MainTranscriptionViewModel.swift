@@ -48,10 +48,13 @@ public class MainTranscriptionViewModel: ObservableObject {
         transcriptionCoordinator: TranscriptionCoordinator? = nil,
         credentialManager: CredentialManager? = nil,
         globalInputCoordinator: GlobalTextInputCoordinator? = nil,
-        textProcessor: TranscriptionTextProcessor = TranscriptionTextProcessor()
+        textProcessor: TranscriptionTextProcessor? = nil
     ) {
         self.appState = appState
-        self.textProcessor = textProcessor
+        self.textProcessor = textProcessor ?? TranscriptionTextProcessor(
+            llmService: LLMPostProcessingService(),
+            appState: appState
+        )
         
         // Initialize coordinators with dependency injection
         self.credentialManager = credentialManager ?? CredentialManager(appState: appState)
@@ -130,7 +133,7 @@ public class MainTranscriptionViewModel: ObservableObject {
     }
     
     /// Get processing statistics
-    public func getProcessingStatistics() async -> ProcessingStatistics {
+    public func getProcessingStatistics() async -> TranscriptionProcessingStatistics {
         return await textProcessor.getProcessingStatistics()
     }
     

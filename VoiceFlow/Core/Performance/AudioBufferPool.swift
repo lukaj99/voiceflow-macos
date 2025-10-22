@@ -249,19 +249,22 @@ public actor AudioBufferPool {
 
 /// Shared audio buffer pool instance for application-wide use
 public actor AudioBufferManager {
-    private static var _sharedPool: AudioBufferPool?
+    @MainActor private static var _sharedPool: AudioBufferPool?
     
     public static func getSharedPool(audioFormat: AVAudioFormat) async -> AudioBufferPool {
-        if let existingPool = _sharedPool {
+        if let existingPool = await _sharedPool {
             return existingPool
         }
-        
         let newPool = AudioBufferPool(audioFormat: audioFormat)
-        _sharedPool = newPool
+        await setSharedPool(newPool)
         return newPool
     }
     
     public static func resetSharedPool() async {
-        _sharedPool = nil
+        await setSharedPool(nil)
+    }
+
+    @MainActor private static func setSharedPool(_ pool: AudioBufferPool?) {
+        _sharedPool = pool
     }
 }

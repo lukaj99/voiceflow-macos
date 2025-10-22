@@ -355,11 +355,6 @@ public class SimpleTranscriptionViewModel: ObservableObject {
             await checkCredentialStatus()
             
             print("🔐 Credentials initialized: \(isConfigured ? "✅ Configured" : "❌ Requires user configuration")")
-            
-        } catch {
-            errorMessage = "Failed to initialize credentials: \(error.localizedDescription)"
-            isConfigured = false
-            print("❌ Credential initialization failed: \(error)")
         }
     }
 }

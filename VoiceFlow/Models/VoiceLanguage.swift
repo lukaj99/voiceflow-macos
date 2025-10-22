@@ -8,6 +8,10 @@ public struct VoiceLanguage: Identifiable, Codable, Hashable {
     public let flag: String
     public let region: String
     
+    private enum CodingKeys: String, CodingKey {
+        case code, name, flag, region
+    }
+    
     public init(code: String, name: String, flag: String, region: String = "Unknown") {
         self.code = code
         self.name = name

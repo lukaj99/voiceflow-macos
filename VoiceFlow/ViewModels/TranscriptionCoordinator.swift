@@ -32,14 +32,17 @@ public class TranscriptionCoordinator: ObservableObject {
         audioManager: AudioManager = AudioManager(),
         deepgramClient: DeepgramClient = DeepgramClient(),
         credentialService: SecureCredentialService = SecureCredentialService(),
-        textProcessor: TranscriptionTextProcessor = TranscriptionTextProcessor(),
+        textProcessor: TranscriptionTextProcessor? = nil,
         connectionManager: TranscriptionConnectionManager = TranscriptionConnectionManager()
     ) {
         self.appState = appState
         self.audioManager = audioManager
         self.deepgramClient = deepgramClient
         self.credentialService = credentialService
-        self.textProcessor = textProcessor
+        self.textProcessor = textProcessor ?? TranscriptionTextProcessor(
+            llmService: LLMPostProcessingService(),
+            appState: AppState.shared
+        )
         self.connectionManager = connectionManager
         
         setupBindings()

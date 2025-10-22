@@ -1,6 +1,20 @@
 import Foundation
 import KeychainAccess
 
+// MARK: - Supporting Types for LLM Integration
+
+public enum LLMProvider: String, CaseIterable {
+    case openAI = "openai"
+    case claude = "claude"
+    
+    public var displayName: String {
+        switch self {
+        case .openAI: return "OpenAI GPT"
+        case .claude: return "Anthropic Claude"
+        }
+    }
+}
+
 /// Actor-isolated service for secure credential management using keychain storage
 /// Follows Swift 6 concurrency best practices and 2025 security standards
 public actor SecureCredentialService {
@@ -29,6 +43,8 @@ public actor SecureCredentialService {
     
     public enum CredentialKey: String, CaseIterable, Sendable {
         case deepgramAPIKey = "deepgram_api_key"
+        case openAIAPIKey = "openai_api_key"
+        case claudeAPIKey = "claude_api_key"
         case userPreferences = "user_preferences"
         case sessionTokens = "session_tokens"
         
@@ -58,7 +74,9 @@ public actor SecureCredentialService {
             .accessibility(.whenUnlockedThisDeviceOnly) // More secure: requires device unlock
             .synchronizable(false) // Keep credentials local for security
         
+        #if DEBUG
         print("🔐 SecureCredentialService initialized with secure keychain access")
+        #endif
     }
     
     // MARK: - Public Interface
@@ -90,10 +108,14 @@ public actor SecureCredentialService {
             cachedCredentials[key] = sanitizedCredential
             cacheTimestamps[key] = Date()
             
+            #if DEBUG
             print("🔐 Stored validated credential for key: \(key.rawValue)")
+            #endif
             
         } catch {
+            #if DEBUG
             print("❌ Failed to store credential for \(key.rawValue): \(error)")
+            #endif
             throw CredentialError.storageFailure(error.localizedDescription)
         }
     }
@@ -116,13 +138,17 @@ public actor SecureCredentialService {
             cachedCredentials[key] = credential
             cacheTimestamps[key] = Date()
             
+            #if DEBUG
             print("🔐 Retrieved credential for key: \(key.rawValue)")
+            #endif
             return credential
             
         } catch let error as CredentialError {
             throw error
         } catch {
+            #if DEBUG
             print("❌ Failed to retrieve credential for \(key.rawValue): \(error)")
+            #endif
             throw CredentialError.keychainAccessDenied
         }
     }
@@ -146,10 +172,14 @@ public actor SecureCredentialService {
             cachedCredentials.removeValue(forKey: key)
             cacheTimestamps.removeValue(forKey: key)
             
+            #if DEBUG
             print("🔐 Removed credential for key: \(key.rawValue)")
+            #endif
             
         } catch {
+            #if DEBUG
             print("❌ Failed to remove credential for \(key.rawValue): \(error)")
+            #endif
             throw CredentialError.storageFailure(error.localizedDescription)
         }
     }
@@ -158,7 +188,9 @@ public actor SecureCredentialService {
     public func clearCache() async {
         cachedCredentials.removeAll()
         cacheTimestamps.removeAll()
+        #if DEBUG
         print("🔐 Credential cache cleared")
+        #endif
     }
     
     /// Validate credential format (basic validation)
@@ -167,6 +199,12 @@ public actor SecureCredentialService {
         case .deepgramAPIKey:
             // Deepgram API keys are typically 32+ character hex strings
             return credential.count >= 32 && credential.allSatisfy { $0.isHexDigit }
+        case .openAIAPIKey:
+            // OpenAI API keys start with "sk-" and are typically 51+ characters
+            return credential.hasPrefix("sk-") && credential.count >= 51
+        case .claudeAPIKey:
+            // Claude API keys start with "sk-ant-" and are typically 64+ characters
+            return credential.hasPrefix("sk-ant-") && credential.count >= 64
         case .userPreferences, .sessionTokens:
             // Basic non-empty validation for other types
             return !credential.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -182,7 +220,9 @@ public actor SecureCredentialService {
         }
         
         try await store(credential: apiKey, for: .deepgramAPIKey)
+        #if DEBUG
         print("✅ Deepgram API key stored successfully")
+        #endif
     }
     
     /// Retrieve Deepgram API key
@@ -193,6 +233,105 @@ public actor SecureCredentialService {
     /// Check if Deepgram API key is configured
     public func hasDeepgramAPIKey() async -> Bool {
         return await exists(for: .deepgramAPIKey)
+    }
+    
+    // MARK: - LLM API Key Methods
+    
+    /// Store OpenAI API key with validation
+    public func storeOpenAIAPIKey(_ apiKey: String) async throws {
+        guard await validateCredential(apiKey, for: .openAIAPIKey) else {
+            throw CredentialError.invalidCredential("OpenAI API key format invalid")
+        }
+        
+        try await store(credential: apiKey, for: .openAIAPIKey)
+        #if DEBUG
+        print("✅ OpenAI API key stored successfully")
+        #endif
+    }
+    
+    /// Retrieve OpenAI API key
+    public func getOpenAIAPIKey() async throws -> String {
+        return try await retrieve(for: .openAIAPIKey)
+    }
+    
+    /// Check if OpenAI API key is configured
+    public func hasOpenAIAPIKey() async -> Bool {
+        return await exists(for: .openAIAPIKey)
+    }
+    
+    /// Store Claude API key with validation
+    public func storeClaudeAPIKey(_ apiKey: String) async throws {
+        guard await validateCredential(apiKey, for: .claudeAPIKey) else {
+            throw CredentialError.invalidCredential("Claude API key format invalid")
+        }
+        
+        try await store(credential: apiKey, for: .claudeAPIKey)
+        #if DEBUG
+        print("✅ Claude API key stored successfully")
+        #endif
+    }
+    
+    /// Retrieve Claude API key
+    public func getClaudeAPIKey() async throws -> String {
+        return try await retrieve(for: .claudeAPIKey)
+    }
+    
+    /// Check if Claude API key is configured
+    public func hasClaudeAPIKey() async -> Bool {
+        return await exists(for: .claudeAPIKey)
+    }
+    
+    /// Configure LLM API key from user input with validation
+    public func configureLLMAPIKey(from userInput: String, for provider: LLMProvider) async throws {
+        let credentialKey: CredentialKey
+        switch provider {
+        case .openAI:
+            credentialKey = .openAIAPIKey
+        case .claude:
+            credentialKey = .claudeAPIKey
+        }
+        
+        // Use validation framework for comprehensive API key validation
+        let validationResult = await validator.validateAPIKey(userInput)
+        
+        guard validationResult.isValid else {
+            let errorMessage = validationResult.errors.map(\.localizedDescription).joined(separator: "; ")
+            throw CredentialError.invalidCredential("\(provider.displayName) API key validation failed: \(errorMessage)")
+        }
+        
+        // Use sanitized API key
+        let sanitizedKey = validationResult.sanitized ?? userInput
+        
+        // Additional provider-specific validation
+        guard await validateCredential(sanitizedKey, for: credentialKey) else {
+            throw CredentialError.invalidCredential("\(provider.displayName) API key format invalid")
+        }
+        
+        // Store the validated and sanitized API key
+        try await store(credential: sanitizedKey, for: credentialKey)
+        #if DEBUG
+        print("✅ \(provider.displayName) API key validated and configured successfully")
+        #endif
+    }
+    
+    /// Get API key for LLM provider
+    public func getLLMAPIKey(for provider: LLMProvider) async throws -> String {
+        switch provider {
+        case .openAI:
+            return try await getOpenAIAPIKey()
+        case .claude:
+            return try await getClaudeAPIKey()
+        }
+    }
+    
+    /// Check if LLM provider is configured
+    public func hasLLMAPIKey(for provider: LLMProvider) async -> Bool {
+        switch provider {
+        case .openAI:
+            return await hasOpenAIAPIKey()
+        case .claude:
+            return await hasClaudeAPIKey()
+        }
     }
     
     // MARK: - Migration & Setup
@@ -219,13 +358,17 @@ public actor SecureCredentialService {
         
         // Store the validated and sanitized API key
         try await storeDeepgramAPIKey(sanitizedKey)
+        #if DEBUG
         print("✅ Deepgram API key validated and configured successfully from user input")
+        #endif
     }
     
-    /// Import API key from environment variable (for development/CI)
+    /// Import API key from environment variable (ONLY for development/CI - disabled in production)
     public func configureFromEnvironment() async throws {
+        #if DEBUG
+        // Only allow environment variable configuration in debug builds
         guard let apiKey = ProcessInfo.processInfo.environment["DEEPGRAM_API_KEY"] else {
-            throw CredentialError.keyNotFound("DEEPGRAM_API_KEY environment variable not found")
+            throw CredentialError.keyNotFound("DEEPGRAM_API_KEY environment variable not found (debug only)")
         }
         
         guard !apiKey.isEmpty else {
@@ -233,7 +376,11 @@ public actor SecureCredentialService {
         }
         
         try await configureDeepgramAPIKey(from: apiKey)
-        print("✅ Deepgram API key configured from environment variable")
+        print("✅ Deepgram API key configured from environment variable (debug build)")
+        #else
+        // Explicitly disable environment variable access in production
+        throw CredentialError.keyNotFound("Environment variable configuration is disabled in production builds for security")
+        #endif
     }
     
     /// Health check for keychain accessibility
@@ -248,11 +395,15 @@ public actor SecureCredentialService {
             try keychain.remove(testKey)
             
             let isHealthy = retrieved == testValue
+            #if DEBUG
             print("🔐 Keychain health check: \(isHealthy ? "✅ Passed" : "❌ Failed")")
+            #endif
             return isHealthy
             
         } catch {
+            #if DEBUG
             print("❌ Keychain health check failed: \(error)")
+            #endif
             return false
         }
     }

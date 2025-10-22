@@ -425,9 +425,9 @@ public actor ValidationAuditLog {
 
 extension ValidationFramework {
     /// Predefined common validation rules for frequently used fields
-    public static let commonRules = CommonRules()
+    @MainActor public static let commonRules = CommonRules()
     
-    public struct CommonRules {
+    public struct CommonRules: Sendable {
         /// User name validation rule
         public var userName: ValidationRule {
             ValidationRule(

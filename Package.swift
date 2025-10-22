@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
@@ -16,7 +16,7 @@ let package = Package(
         .package(url: "https://github.com/soffes/HotKey", from: "0.2.0"),
         .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
-        .package(url: "https://github.com/daltoniam/Starscream", from: "4.0.0")
+        .package(path: "ThirdParty/Starscream")
     ],
     targets: [
         .executableTarget(
@@ -28,9 +28,14 @@ let package = Package(
                 "Starscream"
             ],
             path: "VoiceFlow",
+            exclude: [
+                "Documentation/LLM-Integration-Guide.md",
+                "Resources/Entitlements/VoiceFlow.entitlements",
+                "Resources/Assets.xcassets",
+                "App/Info.plist"
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("GlobalConcurrency"),
                 .define("SWIFT_CONCURRENCY_STRICT")
             ],
             linkerSettings: [
@@ -45,13 +50,9 @@ let package = Package(
                 "VoiceFlow",
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
             ],
-            path: "VoiceFlowTests",
-            resources: [
-                .copy("Resources")
-            ],
+            path: "VoiceFlowTests/LLM",
             swiftSettings: [
                 .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("GlobalConcurrency"),
                 .define("SWIFT_CONCURRENCY_STRICT")
             ]
         )

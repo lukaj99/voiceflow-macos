@@ -80,6 +80,32 @@ public final class AppState {
     /// Network latency to transcription service
     public var networkLatency: TimeInterval = 0
     
+    // MARK: - LLM Post-Processing State
+    
+    /// Whether LLM post-processing is enabled
+    public var llmPostProcessingEnabled: Bool = false
+    
+    /// Currently selected LLM provider
+    public var selectedLLMProvider: String = "openai"
+    
+    /// Currently selected LLM model
+    public var selectedLLMModel: String = "gpt-4o-mini"
+    
+    /// Whether LLM is currently processing
+    public var isLLMProcessing: Bool = false
+    
+    /// LLM processing progress (0.0 to 1.0)
+    public var llmProcessingProgress: Float = 0.0
+    
+    /// Last LLM processing error
+    public var llmProcessingError: String?
+    
+    /// Whether any LLM providers are configured
+    public var hasLLMProvidersConfigured: Bool = false
+    
+    /// LLM processing statistics
+    public var llmProcessingStats: LLMProcessingStatistics = LLMProcessingStatistics()
+    
     // MARK: - Floating Widget Services
     
     /// Floating microphone widget instance
@@ -170,8 +196,8 @@ public final class AppState {
                 averageConfidence: session.averageConfidence,
                 context: session.context,
                 transcription: transcriptionText,
-                metadata: session.metadata,
                 segments: session.segments,
+                metadata: session.metadata,
                 language: session.language
             )
             currentSession = session
@@ -211,6 +237,65 @@ public final class AppState {
     public func updateMetrics(_ metrics: TranscriptionMetrics) {
         currentMetrics = metrics
         networkLatency = metrics.latency
+    }
+    
+    // MARK: - LLM State Management
+    
+    /// Enable LLM post-processing
+    public func enableLLMPostProcessing() {
+        llmPostProcessingEnabled = true
+        llmProcessingError = nil
+        print("🤖 LLM post-processing enabled")
+    }
+    
+    /// Disable LLM post-processing
+    public func disableLLMPostProcessing() {
+        llmPostProcessingEnabled = false
+        isLLMProcessing = false
+        llmProcessingProgress = 0.0
+        llmProcessingError = nil
+        print("🤖 LLM post-processing disabled")
+    }
+    
+    /// Update LLM processing status
+    public func setLLMProcessing(_ processing: Bool, progress: Float = 0.0) {
+        isLLMProcessing = processing
+        llmProcessingProgress = progress
+        
+        if processing {
+            llmProcessingError = nil
+        }
+    }
+    
+    /// Set LLM processing error
+    public func setLLMProcessingError(_ error: String?) {
+        llmProcessingError = error
+        if error != nil {
+            isLLMProcessing = false
+            llmProcessingProgress = 0.0
+            print("🤖 LLM processing error: \(error!)")
+        }
+    }
+    
+    /// Update LLM configuration status
+    public func updateLLMConfigurationStatus(_ hasProviders: Bool) {
+        hasLLMProvidersConfigured = hasProviders
+    }
+    
+    /// Set selected LLM provider and model
+    public func setSelectedLLMProvider(_ provider: String, model: String) {
+        selectedLLMProvider = provider
+        selectedLLMModel = model
+        print("🤖 LLM provider set to \(provider) with model \(model)")
+    }
+    
+    /// Record LLM processing result
+    public func recordLLMProcessingResult(success: Bool, processingTime: TimeInterval, improvementScore: Float = 0.0) {
+        llmProcessingStats.recordProcessing(
+            success: success,
+            processingTime: processingTime,
+            improvementScore: improvementScore
+        )
     }
     
     // MARK: - Configuration State
@@ -437,6 +522,12 @@ public enum AppTheme: String, CaseIterable, Sendable {
     }
 }
 
+
+
 // MARK: - Environment Integration
 // Note: For now we'll manage AppState through direct injection
 // Environment integration can be added later with proper Swift 6 patterns
+
+// MARK: - Protocol Conformance
+
+extension AppState: LLMProcessingStateManaging {}

@@ -59,6 +59,15 @@ public enum VoiceFlowError: LocalizedError, Sendable, Hashable {
     case unauthorizedAccess(String)
     case dataValidationFailed(String)
     
+    // MARK: - LLM Processing Errors
+    
+    case llmProcessingFailed(String)
+    case llmAPIKeyInvalid(String)
+    case llmServiceUnavailable
+    case llmQuotaExceeded(String)
+    case llmNetworkError(String)
+    case llmResponseInvalid
+    
     // MARK: - System Errors
     
     case memoryLimitExceeded
@@ -105,7 +114,26 @@ public enum VoiceFlowError: LocalizedError, Sendable, Hashable {
         case .transcriptionFormatUnsupported(let format):
             return "Audio format '\(format)' is not supported for transcription."
             
-        // Credential Errors
+        // LLM Processing Errors
+        case .llmProcessingFailed(let details):
+            return "LLM post-processing failed: \(details)"
+            
+        case .llmAPIKeyInvalid(let provider):
+            return "\(provider) API key is invalid or expired. Please check your credentials in Settings."
+            
+        case .llmServiceUnavailable:
+            return "LLM service is currently unavailable. Please try again later."
+            
+        case .llmQuotaExceeded(let provider):
+            return "\(provider) quota exceeded. Please check your account limits or upgrade your plan."
+            
+        case .llmNetworkError(let details):
+            return "LLM network error: \(details)"
+            
+        case .llmResponseInvalid:
+            return "Invalid response from LLM service. Please try again."
+    
+    // Credential Errors
         case .credentialNotFound(let credential):
             return "\(credential) not found. Please configure your credentials in Settings."
             
@@ -237,6 +265,10 @@ public enum VoiceFlowError: LocalizedError, Sendable, Hashable {
             
         case .transcriptionServiceUnavailable, .transcriptionConnectionFailed, .transcriptionTimeout,
              .transcriptionApiKeyInvalid, .transcriptionQuotaExceeded, .transcriptionFormatUnsupported:
+            return .transcription
+            
+        case .llmProcessingFailed, .llmAPIKeyInvalid, .llmServiceUnavailable, .llmQuotaExceeded,
+             .llmNetworkError, .llmResponseInvalid:
             return .transcription
             
         case .credentialNotFound, .credentialInvalid, .keychainAccessDenied, .credentialStorageFailed,
