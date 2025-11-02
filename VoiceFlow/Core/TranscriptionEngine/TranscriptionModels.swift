@@ -11,29 +11,29 @@ public struct TranscriptionUpdate: Codable, Identifiable, Sendable {
     public let confidence: Double
     public let alternatives: [Alternative]?
     public let wordTimings: [WordTiming]?
-    
+
     public enum UpdateType: String, Codable, Sendable {
         case partial
         case final
         case correction
     }
-    
+
     public struct Alternative: Codable, Sendable {
         public let text: String
         public let confidence: Double
-        
+
         public init(text: String, confidence: Double) {
             self.text = text
             self.confidence = confidence
         }
     }
-    
+
     public struct WordTiming: Codable, Sendable {
         public let word: String
         public let startTime: TimeInterval
         public let endTime: TimeInterval
         public let confidence: Double
-        
+
         public init(word: String, startTime: TimeInterval, endTime: TimeInterval, confidence: Double) {
             self.word = word
             self.startTime = startTime
@@ -41,7 +41,7 @@ public struct TranscriptionUpdate: Codable, Identifiable, Sendable {
             self.confidence = confidence
         }
     }
-    
+
     public init(
         id: UUID = UUID(),
         timestamp: Date = Date(),
@@ -71,19 +71,19 @@ public enum AppContext: Equatable, Sendable {
     case meeting
     case notes
     case document(type: DocumentType)
-    
+
     public enum CodingLanguage: String, CaseIterable, Sendable {
-        case swift, python, javascript, java, go, rust, cpp, csharp
+        case swift, python, javascript, java, golang, rust, cpp, csharp
     }
-    
+
     public enum EmailTone: String, CaseIterable, Sendable {
         case professional, casual, formal
     }
-    
+
     public enum Formality: String, CaseIterable, Sendable {
         case casual, business, formal
     }
-    
+
     public enum DocumentType: String, CaseIterable, Sendable {
         case formal, creative, technical, academic
     }
@@ -97,11 +97,11 @@ public struct TranscriptionSegment: Codable, Sendable {
     public let startTime: TimeInterval
     public let endTime: TimeInterval
     public let confidence: Float
-    
+
     public var duration: TimeInterval {
         endTime - startTime
     }
-    
+
     public init(text: String, startTime: TimeInterval, endTime: TimeInterval, confidence: Float) {
         self.text = text
         self.startTime = startTime
@@ -125,7 +125,7 @@ public enum Language: String, CaseIterable, Codable, Sendable {
     case russian = "ru-RU"
     case arabic = "ar-SA"
     case hindi = "hi-IN"
-    
+
     public var displayName: String {
         switch self {
         case .english: return "English"
@@ -142,7 +142,7 @@ public enum Language: String, CaseIterable, Codable, Sendable {
         case .hindi: return "Hindi"
         }
     }
-    
+
     public var locale: Locale {
         Locale(identifier: rawValue)
     }
@@ -161,7 +161,7 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
     public var segments: [TranscriptionSegment]
     public let createdAt: Date
     public let language: Language
-    
+
     public struct Metadata: Codable, Sendable {
         public let appName: String?
         public let appBundleID: String?
@@ -175,7 +175,7 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
         public let privacy: String?
         public let speaker: String?
         public let location: String?
-        
+
         public init(
             appName: String? = nil,
             appBundleID: String? = nil,
@@ -204,7 +204,7 @@ public struct TranscriptionSession: Codable, Identifiable, Sendable {
             self.location = location
         }
     }
-    
+
     public init(
         id: UUID = UUID(),
         startTime: Date = Date(),
@@ -241,10 +241,10 @@ public typealias SessionMetadata = TranscriptionSession.Metadata
 // MARK: - Privacy Models
 
 public enum PrivacyMode: String, Codable, CaseIterable, Sendable {
-    case maximum = "maximum"      // No telemetry, no sync
-    case balanced = "balanced"     // Anonymous telemetry only
-    case convenience = "convenience" // Full features with encryption
-    
+    case maximum      // No telemetry, no sync
+    case balanced     // Anonymous telemetry only
+    case convenience  // Full features with encryption
+
     public var description: String {
         switch self {
         case .maximum:
@@ -262,12 +262,12 @@ public enum PrivacyMode: String, Codable, CaseIterable, Sendable {
 @MainActor
 public protocol TranscriptionEngineProtocol: Sendable {
     var transcriptionPublisher: AnyPublisher<TranscriptionUpdate, Never> { get }
-    
+
     func startTranscription() async throws
     func stopTranscription() async
     func pauseTranscription() async
     func resumeTranscription() async
-    
+
     func setLanguage(_ language: String) async
     func setContext(_ context: AppContext) async
     func addCustomVocabulary(_ words: [String]) async
@@ -280,7 +280,7 @@ public struct TranscriptionMetrics: Sendable {
     public let confidence: Double
     public let wordCount: Int
     public let processingTime: TimeInterval
-    
+
     public init(
         latency: TimeInterval,
         confidence: Double,
@@ -305,7 +305,7 @@ extension TimeInterval {
         let hours = Int(self) / 3600
         let minutes = Int(self) % 3600 / 60
         let seconds = Int(self) % 60
-        
+
         if hours > 0 {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {

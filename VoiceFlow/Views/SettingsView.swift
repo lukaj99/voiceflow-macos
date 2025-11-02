@@ -4,29 +4,29 @@ import SwiftUI
 /// Follows guardrails patterns for secure credential management
 @MainActor
 public struct SettingsView: View {
-    
+
     // MARK: - Properties
-    
+
     @ObservedObject public var viewModel: SimpleTranscriptionViewModel
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var showingAPIKeyConfiguration = false
     @State private var showingHotkeyConfiguration = false
     @State private var showingLLMAPIKeyConfiguration = false
     @State private var isTestingCredentials = false
     @State private var testResult: String?
     @State private var globalHotkeysEnabled = true
-    
+
     private let validator = ValidationFramework()
-    
+
     // MARK: - Initialization
-    
+
     public init(viewModel: SimpleTranscriptionViewModel) {
         self.viewModel = viewModel
     }
-    
+
     // MARK: - Body
-    
+
     public var body: some View {
         NavigationStack {
             List {
@@ -35,22 +35,22 @@ public struct SettingsView: View {
                     HStack {
                         Image(systemName: "key.fill")
                             .foregroundColor(.accentColor)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Deepgram API Key")
                                 .font(.headline)
-                            
-                            Text(viewModel.isConfigured ? 
-                                 "Configured and secure" : 
+
+                            Text(viewModel.isConfigured ?
+                                 "Configured and secure" :
                                  "Not configured")
                                 .font(.caption)
                                 .foregroundColor(viewModel.isConfigured ? .green : .orange)
                         }
-                        
+
                         Spacer()
-                        
-                        Image(systemName: viewModel.isConfigured ? 
-                              "checkmark.shield.fill" : 
+
+                        Image(systemName: viewModel.isConfigured ?
+                              "checkmark.shield.fill" :
                               "exclamationmark.shield.fill")
                             .foregroundColor(viewModel.isConfigured ? .green : .orange)
                     }
@@ -58,24 +58,24 @@ public struct SettingsView: View {
                     .onTapGesture {
                         showingAPIKeyConfiguration = true
                     }
-                    
+
                     Button("Test API Key") {
                         testCredentials()
                     }
                     .disabled(!viewModel.isConfigured || isTestingCredentials)
-                    
+
                     if let result = testResult {
                         HStack {
                             Image(systemName: result.contains("✓") ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundColor(result.contains("✓") ? .green : .red)
-                            
+
                             Text(result)
                                 .font(.caption)
                                 .foregroundColor(result.contains("✓") ? .green : .red)
                         }
                     }
                 }
-                
+
                 // Model Selection Section
                 Section("Transcription Model") {
                     Picker("Model", selection: $viewModel.selectedModel) {
@@ -86,7 +86,7 @@ public struct SettingsView: View {
                     }
                     .pickerStyle(MenuPickerStyle())
                 }
-                
+
                 // LLM Post-Processing Section
                 Section(header: Text("LLM Enhancement")) {
                     Toggle("Enable LLM Post-Processing", isOn: Binding(
@@ -99,13 +99,13 @@ public struct SettingsView: View {
                             }
                         }
                     ))
-                    
+
                     if AppState.shared.llmPostProcessingEnabled {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Improves transcription accuracy with grammar correction, punctuation, and word substitution (e.g., 'slash' → '/')")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             // LLM Provider Selection
                             HStack {
                                 Text("Provider:")
@@ -121,7 +121,7 @@ public struct SettingsView: View {
                                 .pickerStyle(MenuPickerStyle())
                                 .fixedSize()
                             }
-                            
+
                             // Model Selection
                             HStack {
                                 Text("Model:")
@@ -142,20 +142,20 @@ public struct SettingsView: View {
                                 .pickerStyle(MenuPickerStyle())
                                 .fixedSize()
                             }
-                            
+
                             // Configuration Status
                             HStack {
-                                Image(systemName: AppState.shared.hasLLMProvidersConfigured ? 
+                                Image(systemName: AppState.shared.hasLLMProvidersConfigured ?
                                       "checkmark.shield.fill" : "exclamationmark.shield.fill")
                                     .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
-                                
-                                Text(AppState.shared.hasLLMProvidersConfigured ? 
-                                     "LLM providers configured" : 
+
+                                Text(AppState.shared.hasLLMProvidersConfigured ?
+                                     "LLM providers configured" :
                                      "LLM API key required")
                                     .font(.caption)
                                     .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
                             }
-                            
+
                             // Processing Status
                             if AppState.shared.isLLMProcessing {
                                 HStack {
@@ -166,7 +166,7 @@ public struct SettingsView: View {
                                         .foregroundColor(.blue)
                                 }
                             }
-                            
+
                             // Error Display
                             if let error = AppState.shared.llmProcessingError {
                                 HStack {
@@ -177,7 +177,7 @@ public struct SettingsView: View {
                                         .foregroundColor(.red)
                                 }
                             }
-                            
+
                             // Statistics
                             let stats = AppState.shared.llmProcessingStats
                             if stats.totalProcessed > 0 {
@@ -196,13 +196,13 @@ public struct SettingsView: View {
                         }
                         .padding(.leading, 8)
                     }
-                    
+
                     Button("Configure LLM API Keys") {
                         showingLLMAPIKeyConfiguration = true
                     }
                     .disabled(isTestingCredentials)
                 }
-                
+
                 // Features Section
                 Section("Features") {
                     Toggle("Global Text Input", isOn: $viewModel.globalInputEnabled)
@@ -213,18 +213,18 @@ public struct SettingsView: View {
                                 viewModel.disableGlobalInputMode()
                             }
                         }
-                    
+
                     if viewModel.globalInputEnabled {
                         Text("Global text input allows transcription to be automatically inserted into any text field")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Button("Configure Hotkeys") {
                         showingHotkeyConfiguration = true
                     }
                     .disabled(isTestingCredentials)
-                    
+
                     Toggle("Enable Global Hotkeys", isOn: $globalHotkeysEnabled)
                         .onChange(of: globalHotkeysEnabled) { _, enabled in
                             if enabled {
@@ -234,20 +234,20 @@ public struct SettingsView: View {
                             }
                         }
                 }
-                
+
                 // Security Section
                 Section("Security") {
                     Button("Perform Health Check") {
                         performHealthCheck()
                     }
                     .disabled(isTestingCredentials)
-                    
+
                     Button("Clear Credential Cache") {
                         clearCredentialCache()
                     }
                     .disabled(isTestingCredentials)
                 }
-                
+
                 // About Section
                 Section("About") {
                     HStack {
@@ -256,7 +256,7 @@ public struct SettingsView: View {
                         Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown")
                             .foregroundColor(.secondary)
                     }
-                    
+
                     HStack {
                         Text("Build")
                         Spacer()
@@ -303,39 +303,39 @@ public struct SettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     /// Test the configured credentials
-    private func testCredentials() {
+    func testCredentials() {
         isTestingCredentials = true
         testResult = nil
-        
+
         Task {
             let result = await viewModel.performHealthCheck()
-            
+
             await MainActor.run {
                 testResult = result ? "Credentials test passed ✓" : "Credentials test failed ✗"
                 isTestingCredentials = false
             }
         }
     }
-    
+
     /// Perform comprehensive health check
     private func performHealthCheck() {
         isTestingCredentials = true
         testResult = nil
-        
+
         Task {
             let result = await viewModel.performHealthCheck()
-            
+
             await MainActor.run {
                 testResult = result ? "Health check passed ✓" : "Health check failed ✗"
                 isTestingCredentials = false
             }
         }
     }
-    
+
     /// Clear credential cache
     private func clearCredentialCache() {
         Task {
@@ -345,13 +345,12 @@ public struct SettingsView: View {
             }
         }
     }
-    
+
     /// Load current hotkey settings
     private func loadHotkeySettings() {
         globalHotkeysEnabled = AppState.shared.isGlobalHotkeysEnabled
     }
 }
-
 
 // MARK: - Preview
 

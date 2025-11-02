@@ -5,30 +5,30 @@ import AppKit
 /// Hotkey configuration view for customizing global shortcuts
 @MainActor
 public struct HotkeyConfigurationView: View {
-    
+
     // MARK: - Properties
-    
+
     @ObservedObject var hotkeyService: GlobalHotkeyService
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var isRecordingToggleHotkey = false
     @State private var isRecordingQuickHotkey = false
     @State private var toggleHotkeyDisplay = "⌘⌥Space"
     @State private var quickRecordHotkeyDisplay = "⌘⇧R"
     @State private var configurationMessage: String?
-    
+
     // Current hotkey being recorded
     @State private var recordedKey: Key?
     @State private var recordedModifiers: NSEvent.ModifierFlags = []
-    
+
     // MARK: - Initialization
-    
+
     public init(hotkeyService: GlobalHotkeyService) {
         self.hotkeyService = hotkeyService
     }
-    
+
     // MARK: - Body
-    
+
     public var body: some View {
         VStack(spacing: 24) {
             // Header
@@ -36,25 +36,25 @@ public struct HotkeyConfigurationView: View {
                 Image(systemName: "keyboard")
                     .font(.system(size: 48))
                     .foregroundColor(.accentColor)
-                
+
                 Text("Configure Hotkeys")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                
+
                 Text("Set custom keyboard shortcuts for floating microphone")
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
             .padding(.top)
-            
+
             // Hotkey Configuration Section
             VStack(spacing: 20) {
                 // Toggle Widget Hotkey
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Toggle Floating Widget")
                         .font(.headline)
-                    
+
                     HStack {
                         HotkeyRecorderView(
                             isRecording: $isRecordingToggleHotkey,
@@ -65,24 +65,24 @@ public struct HotkeyConfigurationView: View {
                                 updateToggleHotkey(key: key, modifiers: modifiers)
                             }
                         )
-                        
+
                         Button("Reset to Default") {
                             resetToggleHotkey()
                         }
                         .buttonStyle(.bordered)
                         .disabled(isRecordingToggleHotkey || isRecordingQuickHotkey)
                     }
-                    
+
                     Text("Shows/hides the floating microphone widget")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 // Quick Record Hotkey
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Quick Record")
                         .font(.headline)
-                    
+
                     HStack {
                         HotkeyRecorderView(
                             isRecording: $isRecordingQuickHotkey,
@@ -93,25 +93,25 @@ public struct HotkeyConfigurationView: View {
                                 updateQuickRecordHotkey(key: key, modifiers: modifiers)
                             }
                         )
-                        
+
                         Button("Reset to Default") {
                             resetQuickRecordHotkey()
                         }
                         .buttonStyle(.bordered)
                         .disabled(isRecordingToggleHotkey || isRecordingQuickHotkey)
                     }
-                    
+
                     Text("Shows widget and immediately starts recording")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 // Configuration Status
                 if let message = configurationMessage {
                     HStack {
                         Image(systemName: message.contains("✓") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                             .foregroundColor(message.contains("✓") ? .green : .orange)
-                        
+
                         Text(message)
                             .font(.caption)
                             .foregroundColor(message.contains("✓") ? .green : .orange)
@@ -123,12 +123,12 @@ public struct HotkeyConfigurationView: View {
             .background(Color(.controlBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-            
+
             // Help Information
             VStack(alignment: .leading, spacing: 8) {
                 Text("Instructions:")
                     .font(.headline)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("1. Click on a hotkey field above")
                     Text("2. Press your desired key combination")
@@ -141,9 +141,9 @@ public struct HotkeyConfigurationView: View {
             .padding()
             .background(Color(.controlBackgroundColor).opacity(0.5))
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            
+
             Spacer()
-            
+
             // Action Buttons
             HStack(spacing: 12) {
                 Button("Test Current Hotkeys") {
@@ -151,7 +151,7 @@ public struct HotkeyConfigurationView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(isRecordingToggleHotkey || isRecordingQuickHotkey)
-                
+
                 Button("Done") {
                     dismiss()
                 }
@@ -165,61 +165,61 @@ public struct HotkeyConfigurationView: View {
             loadCurrentHotkeys()
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func updateToggleHotkey(key: Key, modifiers: NSEvent.ModifierFlags) {
         hotkeyService.configureToggleHotkey(key: key, modifiers: modifiers)
         toggleHotkeyDisplay = formatHotkey(key: key, modifiers: modifiers)
         configurationMessage = "Toggle hotkey updated ✓"
         clearMessageAfterDelay()
     }
-    
+
     private func updateQuickRecordHotkey(key: Key, modifiers: NSEvent.ModifierFlags) {
         hotkeyService.configureQuickRecordHotkey(key: key, modifiers: modifiers)
         quickRecordHotkeyDisplay = formatHotkey(key: key, modifiers: modifiers)
         configurationMessage = "Quick record hotkey updated ✓"
         clearMessageAfterDelay()
     }
-    
+
     private func resetToggleHotkey() {
         hotkeyService.configureToggleHotkey(key: .space, modifiers: [.command, .option])
         toggleHotkeyDisplay = "⌘⌥Space"
         configurationMessage = "Toggle hotkey reset to default ✓"
         clearMessageAfterDelay()
     }
-    
+
     private func resetQuickRecordHotkey() {
         hotkeyService.configureQuickRecordHotkey(key: .r, modifiers: [.command, .shift])
         quickRecordHotkeyDisplay = "⌘⇧R"
         configurationMessage = "Quick record hotkey reset to default ✓"
         clearMessageAfterDelay()
     }
-    
-    private func testHotkeys() {
+
+    func testHotkeys() {
         configurationMessage = "Try using your configured hotkeys now!"
         clearMessageAfterDelay()
     }
-    
+
     private func loadCurrentHotkeys() {
         let info = hotkeyService.getHotkeyInfo()
         toggleHotkeyDisplay = info["Toggle Widget"] ?? "⌘⌥Space"
         quickRecordHotkeyDisplay = info["Quick Record"] ?? "⌘⇧R"
     }
-    
+
     private func formatHotkey(key: Key, modifiers: NSEvent.ModifierFlags) -> String {
         var parts: [String] = []
-        
+
         if modifiers.contains(.command) { parts.append("⌘") }
         if modifiers.contains(.option) { parts.append("⌥") }
         if modifiers.contains(.shift) { parts.append("⇧") }
         if modifiers.contains(.control) { parts.append("⌃") }
-        
+
         parts.append(keyDisplayName(key))
-        
+
         return parts.joined(separator: "")
     }
-    
+
     private func keyDisplayName(_ key: Key) -> String {
         switch key {
         case .space: return "Space"
@@ -243,7 +243,7 @@ public struct HotkeyConfigurationView: View {
         default: return key.description
         }
     }
-    
+
     private func clearMessageAfterDelay() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
             configurationMessage = nil
@@ -256,9 +256,9 @@ struct HotkeyRecorderView: View {
     @Binding var isRecording: Bool
     @Binding var displayText: String
     let onHotkeyRecorded: (Key, NSEvent.ModifierFlags) -> Void
-    
+
     @State private var localEventMonitor: Any?
-    
+
     var body: some View {
         Button(action: {
             if isRecording {
@@ -271,9 +271,9 @@ struct HotkeyRecorderView: View {
                 Text(isRecording ? "Press keys..." : displayText)
                     .font(.system(.body, design: .monospaced))
                     .foregroundColor(isRecording ? .orange : .primary)
-                
+
                 Spacer()
-                
+
                 Image(systemName: isRecording ? "record.circle.fill" : "keyboard")
                     .foregroundColor(isRecording ? .red : .secondary)
             }
@@ -293,16 +293,16 @@ struct HotkeyRecorderView: View {
             stopRecording()
         }
     }
-    
+
     private func startRecording() {
         isRecording = true
         print("🎬 Started recording hotkey...")
-        
+
         localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
             if event.type == .keyDown {
                 let modifiers = event.modifierFlags.intersection([.command, .option, .shift, .control])
                 print("🔍 Key pressed: keyCode=\(event.keyCode), modifiers=\(modifiers)")
-                
+
                 // Only process if we have modifiers (prevent recording single letters)
                 if !modifiers.isEmpty {
                     // Convert NSEvent key to HotKey.Key
@@ -323,16 +323,16 @@ struct HotkeyRecorderView: View {
             return event
         }
     }
-    
+
     private func stopRecording() {
         isRecording = false
-        
+
         if let monitor = localEventMonitor {
             NSEvent.removeMonitor(monitor)
             localEventMonitor = nil
         }
     }
-    
+
     private func keyFromKeyCode(_ keyCode: UInt16) -> Key? {
         // Map key codes to HotKey.Key values
         switch keyCode {
@@ -342,7 +342,7 @@ struct HotkeyRecorderView: View {
         case 53: return .escape
         case 51: return .delete
         case 48: return .tab
-        
+
         // Function keys
         case 122: return .f1
         case 120: return .f2
@@ -356,7 +356,7 @@ struct HotkeyRecorderView: View {
         case 109: return .f10
         case 103: return .f11
         case 111: return .f12
-        
+
         // Numbers
         case 29: return .zero
         case 18: return .one
@@ -368,7 +368,7 @@ struct HotkeyRecorderView: View {
         case 26: return .seven
         case 28: return .eight
         case 25: return .nine
-        
+
         // Letters
         case 0: return .a
         case 11: return .b
@@ -396,13 +396,13 @@ struct HotkeyRecorderView: View {
         case 7: return .x
         case 16: return .y
         case 6: return .z
-        
+
         // Arrow keys
         case 123: return .leftArrow
         case 124: return .rightArrow
         case 125: return .downArrow
         case 126: return .upArrow
-        
+
         default: return nil
         }
     }

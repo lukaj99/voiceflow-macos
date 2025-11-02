@@ -7,9 +7,9 @@ public enum ExportFormat: String, CaseIterable, Identifiable {
     case pdf = "pdf"
     case docx = "docx"
     case srt = "srt"
-    
+
     public var id: String { rawValue }
-    
+
     public var displayName: String {
         switch self {
         case .text: return "Text"
@@ -19,7 +19,7 @@ public enum ExportFormat: String, CaseIterable, Identifiable {
         case .srt: return "SRT"
         }
     }
-    
+
     public var fileExtension: String {
         return rawValue
     }
@@ -29,7 +29,7 @@ public enum ExportFormat: String, CaseIterable, Identifiable {
 public struct ExportConfiguration {
     public let includeTimestamps: Bool
     public let includeMetadata: Bool
-    
+
     public init(includeTimestamps: Bool = true, includeMetadata: Bool = true) {
         self.includeTimestamps = includeTimestamps
         self.includeMetadata = includeMetadata
@@ -42,7 +42,7 @@ public struct ExportResult {
     public let filePath: URL?
     public let error: (any Error)?
     public let metadata: [String: Any]
-    
+
     public init(success: Bool, filePath: URL? = nil, error: (any Error)? = nil, metadata: [String: Any] = [:]) {
         self.success = success
         self.filePath = filePath
