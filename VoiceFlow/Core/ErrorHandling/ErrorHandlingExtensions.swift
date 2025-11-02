@@ -162,22 +162,42 @@ public struct ErrorHandlingViewModifier: ViewModifier {
     /// Create primary alert button
     private func primaryAlertButton(for errorAlert: ErrorAlertManager.ErrorAlert) -> Alert.Button {
         .default(Text("OK")) {
-            errorAlert.primaryAction?()
-            alertManager.dismissAlert()
+            handlePrimaryAction(for: errorAlert)
         }
+    }
+
+    /// Handle primary alert action
+    private func handlePrimaryAction(for errorAlert: ErrorAlertManager.ErrorAlert) {
+        errorAlert.primaryAction?()
+        alertManager.dismissAlert()
     }
 
     /// Create secondary alert button
     private func secondaryAlertButton(for errorAlert: ErrorAlertManager.ErrorAlert) -> Alert.Button {
         if errorAlert.error.canRetry {
-            return .default(Text("Retry")) {
-                errorAlert.secondaryAction?()
-                alertManager.dismissAlert()
-            }
+            return retryButton(for: errorAlert)
         } else {
-            return .cancel {
-                alertManager.dismissAlert()
-            }
+            return cancelButton()
+        }
+    }
+
+    /// Create retry button
+    private func retryButton(for errorAlert: ErrorAlertManager.ErrorAlert) -> Alert.Button {
+        .default(Text("Retry")) {
+            handleRetryAction(for: errorAlert)
+        }
+    }
+
+    /// Handle retry action
+    private func handleRetryAction(for errorAlert: ErrorAlertManager.ErrorAlert) {
+        errorAlert.secondaryAction?()
+        alertManager.dismissAlert()
+    }
+
+    /// Create cancel button
+    private func cancelButton() -> Alert.Button {
+        .cancel {
+            alertManager.dismissAlert()
         }
     }
 }
@@ -205,10 +225,8 @@ public struct ErrorRecoveryView: View {
     /// Main content container
     @ViewBuilder
     private var mainContentView: some View {
-        VStack(spacing: 20) {
-            if let error = recoveryManager.currentError {
-                errorContentView(for: error)
-            }
+        if let error = recoveryManager.currentError {
+            errorContentView(for: error)
         }
     }
 
@@ -284,16 +302,21 @@ public struct ErrorRecoveryView: View {
     @ViewBuilder
     private func recoverySuggestionView(for error: VoiceFlowError) -> some View {
         if let recoverySuggestion = error.recoverySuggestion, !recoveryManager.isRecovering {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("How to fix this:")
-                    .font(.headline)
-
-                Text(recoverySuggestion)
-                    .font(.body)
-                    .padding(.leading)
-            }
-            .padding()
+            recoverySuggestionContent(text: recoverySuggestion)
         }
+    }
+
+    /// Recovery suggestion content view
+    private func recoverySuggestionContent(text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("How to fix this:")
+                .font(.headline)
+
+            Text(text)
+                .font(.body)
+                .padding(.leading)
+        }
+        .padding()
     }
 
     /// Step-by-step instructions section
@@ -349,23 +372,31 @@ public struct ErrorRecoveryView: View {
 
     /// Individual action button
     private func actionButton(for action: ErrorRecoveryManager.RecoveryAction) -> some View {
-        Button(action: {
-            Task {
-                await action.action()
-            }
-        }) {
-            HStack {
-                Image(systemName: action.icon)
-                Text(action.title)
-                Spacer()
-            }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(action.isPrimary ? Color.blue : Color.secondary.opacity(0.2))
-            .foregroundColor(action.isPrimary ? .white : .primary)
-            .cornerRadius(10)
+        Button(action: { performAction(action) }) {
+            actionButtonContent(for: action)
         }
         .disabled(recoveryManager.isRecovering)
+    }
+
+    /// Perform recovery action
+    private func performAction(_ action: ErrorRecoveryManager.RecoveryAction) {
+        Task {
+            await action.action()
+        }
+    }
+
+    /// Action button content layout
+    private func actionButtonContent(for action: ErrorRecoveryManager.RecoveryAction) -> some View {
+        HStack {
+            Image(systemName: action.icon)
+            Text(action.title)
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(action.isPrimary ? Color.blue : Color.secondary.opacity(0.2))
+        .foregroundColor(action.isPrimary ? .white : .primary)
+        .cornerRadius(10)
     }
 
     /// Done toolbar button
@@ -400,11 +431,15 @@ extension ErrorHandlingViewModel {
     /// Show error alert if the error requires user action
     private func showAlertIfNeeded(for error: VoiceFlowError) {
         guard shouldShowAlert(for: error) else { return }
-
         errorAlertManager.showError(error) {
-            Task {
-                let _ = await self.recoveryManager.attemptRecovery(for: error)
-            }
+            self.attemptErrorRecovery(for: error)
+        }
+    }
+
+    /// Attempt error recovery in a task
+    private func attemptErrorRecovery(for error: VoiceFlowError) {
+        Task {
+            let _ = await self.recoveryManager.attemptRecovery(for: error)
         }
     }
 
