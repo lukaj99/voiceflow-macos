@@ -11,7 +11,7 @@ import Foundation
 /// Protocol for organizing service registrations into logical modules
 /// Allows grouping related services and their dependencies together
 /// Example: AudioModule, TranscriptionModule, NetworkModule, etc.
-protocol ServiceModule {
+protocol ServiceModule: Sendable {
 
     /// Module name for identification and debugging
     var name: String { get }
@@ -158,7 +158,7 @@ extension ServiceLocator {
 enum ModuleRegistrationError: Error, CustomStringConvertible {
     case circularDependency(String)
     case missingDependency(module: String, dependency: String)
-    case registrationFailed(module: String, error: Error)
+    case registrationFailed(module: String, error: any Error)
 
     var description: String {
         switch self {

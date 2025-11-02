@@ -42,7 +42,7 @@ actor ServiceLocator {
     }
 
     /// Metadata about registered services
-    private struct ServiceMetadata {
+    public struct ServiceMetadata: Sendable {
         let typeName: String
         let protocolName: String
         let registrationDate: Date
@@ -53,7 +53,7 @@ actor ServiceLocator {
     enum ServiceLocatorError: Error, CustomStringConvertible {
         case serviceNotRegistered(String)
         case typeMismatch(expected: String, actual: String)
-        case factoryFailed(String, Error)
+        case factoryFailed(String, any Error)
         case duplicateRegistration(String)
 
         var description: String {
@@ -241,28 +241,6 @@ extension ServiceLocator {
     /// - Throws: ServiceLocatorError if registration fails
     func register(module: ServiceModule) async throws {
         try await module.registerServices(in: self)
-    }
-
-    /// Registers services lazily - factory only called when resolved
-    /// Useful for expensive initialization
-    func registerLazy<T>(
-        _ type: T.Type,
-        factory: @escaping () async throws -> T
-    ) throws {
-        // Convert async factory to sync by storing a task
-        var task: Task<T, Error>?
-
-        try register(type, isSingleton: true) {
-            if let existingTask = task {
-                return try existingTask.value
-            }
-
-            let newTask = Task {
-                try await factory()
-            }
-            task = newTask
-            return try newTask.value
-        }
     }
 }
 
