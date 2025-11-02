@@ -6,35 +6,49 @@ extension Result {
     /// Convert Result to VoiceFlowError
     func mapToVoiceFlowError(context: String) -> Result<Success, VoiceFlowError> {
         return self.mapError { error in
-            // Map common system errors to VoiceFlowError
-            if let nsError = error as NSError? {
-                switch nsError.domain {
-                case NSURLErrorDomain:
-                    switch nsError.code {
-                    case NSURLErrorNotConnectedToInternet:
-                        return VoiceFlowError.networkUnavailable
-                    case NSURLErrorTimedOut:
-                        return VoiceFlowError.networkTimeout
-                    case NSURLErrorBadServerResponse:
-                        return VoiceFlowError.invalidServerResponse
-                    default:
-                        return VoiceFlowError.networkUnavailable
-                    }
-                case NSCocoaErrorDomain:
-                    switch nsError.code {
-                    case NSFileReadNoSuchFileError:
-                        return VoiceFlowError.fileNotFound(nsError.localizedDescription)
-                    case NSFileReadNoPermissionError:
-                        return VoiceFlowError.fileAccessDenied(nsError.localizedDescription)
-                    default:
-                        return VoiceFlowError.unexpectedError(nsError.localizedDescription)
-                    }
-                default:
-                    return VoiceFlowError.unexpectedError("\(context): \(error.localizedDescription)")
-                }
-            }
-            
+            mapErrorToVoiceFlowError(error, context: context)
+        }
+    }
+
+    /// Map any error to VoiceFlowError with appropriate categorization
+    private func mapErrorToVoiceFlowError(_ error: Error, context: String) -> VoiceFlowError {
+        guard let nsError = error as NSError? else {
             return VoiceFlowError.unexpectedError("\(context): \(error.localizedDescription)")
+        }
+
+        switch nsError.domain {
+        case NSURLErrorDomain:
+            return mapURLError(nsError)
+        case NSCocoaErrorDomain:
+            return mapCocoaError(nsError)
+        default:
+            return VoiceFlowError.unexpectedError("\(context): \(error.localizedDescription)")
+        }
+    }
+
+    /// Map URL domain errors to VoiceFlowError
+    private func mapURLError(_ error: NSError) -> VoiceFlowError {
+        switch error.code {
+        case NSURLErrorNotConnectedToInternet:
+            return .networkUnavailable
+        case NSURLErrorTimedOut:
+            return .networkTimeout
+        case NSURLErrorBadServerResponse:
+            return .invalidServerResponse
+        default:
+            return .networkUnavailable
+        }
+    }
+
+    /// Map Cocoa domain errors to VoiceFlowError
+    private func mapCocoaError(_ error: NSError) -> VoiceFlowError {
+        switch error.code {
+        case NSFileReadNoSuchFileError:
+            return .fileNotFound(error.localizedDescription)
+        case NSFileReadNoPermissionError:
+            return .fileAccessDenied(error.localizedDescription)
+        default:
+            return .unexpectedError(error.localizedDescription)
         }
     }
 }
@@ -51,21 +65,33 @@ extension Task {
             let result = try await operation()
             return .success(result)
         } catch {
-            let context = ErrorReporter.ErrorContext(component: component, function: function)
-            
-            // Convert to VoiceFlowError if needed
-            let voiceFlowError: VoiceFlowError
-            if let vfError = error as? VoiceFlowError {
-                voiceFlowError = vfError
-            } else {
-                voiceFlowError = VoiceFlowError.unexpectedError(error.localizedDescription)
-            }
-            
-            // Report the error
-            await ErrorReporter.shared.reportError(voiceFlowError, context: context)
-            
-            return .failure(voiceFlowError)
+            return await handleAndReportError(
+                error,
+                component: component,
+                function: function
+            )
         }
+    }
+
+    /// Handle and report errors from async operations
+    private static func handleAndReportError<T>(
+        _ error: Error,
+        component: String,
+        function: String
+    ) async -> Result<T, VoiceFlowError> {
+        let context = ErrorReporter.ErrorContext(component: component, function: function)
+        let voiceFlowError = convertToVoiceFlowError(error)
+
+        await ErrorReporter.shared.reportError(voiceFlowError, context: context)
+        return .failure(voiceFlowError)
+    }
+
+    /// Convert any error to VoiceFlowError
+    private static func convertToVoiceFlowError(_ error: Error) -> VoiceFlowError {
+        if let vfError = error as? VoiceFlowError {
+            return vfError
+        }
+        return VoiceFlowError.unexpectedError(error.localizedDescription)
     }
 }
 
@@ -112,31 +138,47 @@ public class ErrorAlertManager: ObservableObject {
 public struct ErrorHandlingViewModifier: ViewModifier {
     @StateObject private var alertManager = ErrorAlertManager()
     @StateObject private var recoveryManager = ErrorRecoveryManager()
-    
+
     public func body(content: Content) -> some View {
         content
             .environmentObject(alertManager)
             .environmentObject(recoveryManager)
-            .alert(item: $alertManager.currentAlert) { errorAlert in
-                Alert(
-                    title: Text("Error"),
-                    message: Text(errorAlert.error.errorDescription ?? "An unexpected error occurred"),
-                    primaryButton: .default(Text("OK")) {
-                        errorAlert.primaryAction?()
-                        alertManager.dismissAlert()
-                    },
-                    secondaryButton: errorAlert.error.canRetry ? 
-                        .default(Text("Retry")) {
-                            errorAlert.secondaryAction?()
-                            alertManager.dismissAlert()
-                        } : .cancel {
-                            alertManager.dismissAlert()
-                        }
-                )
-            }
+            .alert(item: $alertManager.currentAlert, content: buildAlert)
             .sheet(isPresented: $recoveryManager.showErrorDialog) {
                 ErrorRecoveryView(recoveryManager: recoveryManager)
             }
+    }
+
+    /// Build alert for error presentation
+    private func buildAlert(for errorAlert: ErrorAlertManager.ErrorAlert) -> Alert {
+        Alert(
+            title: Text("Error"),
+            message: Text(errorAlert.error.errorDescription ?? "An unexpected error occurred"),
+            primaryButton: primaryAlertButton(for: errorAlert),
+            secondaryButton: secondaryAlertButton(for: errorAlert)
+        )
+    }
+
+    /// Create primary alert button
+    private func primaryAlertButton(for errorAlert: ErrorAlertManager.ErrorAlert) -> Alert.Button {
+        .default(Text("OK")) {
+            errorAlert.primaryAction?()
+            alertManager.dismissAlert()
+        }
+    }
+
+    /// Create secondary alert button
+    private func secondaryAlertButton(for errorAlert: ErrorAlertManager.ErrorAlert) -> Alert.Button {
+        if errorAlert.error.canRetry {
+            return .default(Text("Retry")) {
+                errorAlert.secondaryAction?()
+                alertManager.dismissAlert()
+            }
+        } else {
+            return .cancel {
+                alertManager.dismissAlert()
+            }
+        }
     }
 }
 
@@ -151,121 +193,186 @@ extension View {
 public struct ErrorRecoveryView: View {
     @ObservedObject var recoveryManager: ErrorRecoveryManager
     @Environment(\.dismiss) private var dismiss
-    
+
     public var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Error icon and title
-                if let error = recoveryManager.currentError {
-                    VStack(spacing: 12) {
-                        Image(systemName: error.category.icon)
-                            .font(.system(size: 48))
-                            .foregroundColor(Color(error.severity.color))
-                        
-                        Text(error.category.rawValue + " Error")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text(error.errorDescription ?? "An unexpected error occurred")
-                            .font(.body)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    .padding(.top)
-                    
-                    // Recovery progress
-                    if recoveryManager.isRecovering {
-                        VStack(spacing: 8) {
-                            ProgressView(value: recoveryManager.recoveryProgress)
-                                .progressViewStyle(LinearProgressViewStyle())
-                                .padding(.horizontal)
-                            
-                            if let message = recoveryManager.recoveryMessage {
-                                Text(message)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding()
-                    }
-                    
-                    // Recovery suggestions
-                    if let recoverySuggestion = error.recoverySuggestion, !recoveryManager.isRecovering {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("How to fix this:")
-                                .font(.headline)
-                            
-                            Text(recoverySuggestion)
-                                .font(.body)
-                                .padding(.leading)
-                        }
-                        .padding()
-                    }
-                    
-                    // Step-by-step instructions
-                    let suggestions = recoveryManager.getRecoverySuggestions(for: error)
-                    if !suggestions.isEmpty && !recoveryManager.isRecovering {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Steps to resolve:")
-                                .font(.headline)
-                            
-                            ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
-                                HStack(alignment: .top, spacing: 12) {
-                                    Text("\(index + 1)")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                        .frame(width: 24, height: 24)
-                                        .background(Color.blue)
-                                        .clipShape(Circle())
-                                    
-                                    Text(suggestion)
-                                        .font(.body)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    Spacer()
-                                }
-                            }
-                        }
-                        .padding()
-                    }
-                    
-                    Spacer()
-                    
-                    // Action buttons
-                    VStack(spacing: 12) {
-                        ForEach(recoveryManager.availableActions) { action in
-                            Button(action: {
-                                Task {
-                                    await action.action()
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: action.icon)
-                                    Text(action.title)
-                                    Spacer()
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(action.isPrimary ? Color.blue : Color.secondary.opacity(0.2))
-                                .foregroundColor(action.isPrimary ? .white : .primary)
-                                .cornerRadius(10)
-                            }
-                            .disabled(recoveryManager.isRecovering)
-                        }
-                    }
-                    .padding()
-                }
+            mainContentView
+                .navigationTitle("Error Recovery")
+                .toolbar { doneToolbarItem }
+        }
+    }
+
+    /// Main content container
+    @ViewBuilder
+    private var mainContentView: some View {
+        VStack(spacing: 20) {
+            if let error = recoveryManager.currentError {
+                errorContentView(for: error)
             }
-            .navigationTitle("Error Recovery")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Done") {
-                        dismiss()
-                        recoveryManager.clearError()
-                    }
-                }
+        }
+    }
+
+    /// Done button toolbar item
+    private var doneToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            doneButton
+        }
+    }
+
+    /// Main error content view
+    private func errorContentView(for error: VoiceFlowError) -> some View {
+        VStack(spacing: 20) {
+            errorHeaderView(for: error)
+            recoveryProgressView()
+            recoverySuggestionView(for: error)
+            stepByStepInstructionsView(for: error)
+            Spacer()
+            actionButtonsView()
+        }
+    }
+
+    /// Error icon and title header
+    private func errorHeaderView(for error: VoiceFlowError) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: error.category.icon)
+                .font(.system(size: 48))
+                .foregroundColor(Color(error.severity.color))
+
+            Text(error.category.rawValue + " Error")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text(error.errorDescription ?? "An unexpected error occurred")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .padding(.top)
+    }
+
+    /// Recovery progress indicator
+    @ViewBuilder
+    private func recoveryProgressView() -> some View {
+        if recoveryManager.isRecovering {
+            recoveryProgressContent
+        }
+    }
+
+    /// Content shown during recovery
+    private var recoveryProgressContent: some View {
+        VStack(spacing: 8) {
+            ProgressView(value: recoveryManager.recoveryProgress)
+                .progressViewStyle(LinearProgressViewStyle())
+                .padding(.horizontal)
+
+            recoveryMessageText
+        }
+        .padding()
+    }
+
+    /// Recovery message text (if available)
+    @ViewBuilder
+    private var recoveryMessageText: some View {
+        if let message = recoveryManager.recoveryMessage {
+            Text(message)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    /// Recovery suggestion section
+    @ViewBuilder
+    private func recoverySuggestionView(for error: VoiceFlowError) -> some View {
+        if let recoverySuggestion = error.recoverySuggestion, !recoveryManager.isRecovering {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("How to fix this:")
+                    .font(.headline)
+
+                Text(recoverySuggestion)
+                    .font(.body)
+                    .padding(.leading)
             }
+            .padding()
+        }
+    }
+
+    /// Step-by-step instructions section
+    @ViewBuilder
+    private func stepByStepInstructionsView(for error: VoiceFlowError) -> some View {
+        let suggestions = recoveryManager.getRecoverySuggestions(for: error)
+        if !suggestions.isEmpty && !recoveryManager.isRecovering {
+            stepListView(suggestions: suggestions)
+        }
+    }
+
+    /// List of recovery steps
+    private func stepListView(suggestions: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Steps to resolve:")
+                .font(.headline)
+
+            ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
+                stepRowView(number: index + 1, text: suggestion)
+            }
+        }
+        .padding()
+    }
+
+    /// Individual step row
+    private func stepRowView(number: Int, text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(number)")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+                .frame(width: 24, height: 24)
+                .background(Color.blue)
+                .clipShape(Circle())
+
+            Text(text)
+                .font(.body)
+                .multilineTextAlignment(.leading)
+
+            Spacer()
+        }
+    }
+
+    /// Action buttons section
+    private func actionButtonsView() -> some View {
+        VStack(spacing: 12) {
+            ForEach(recoveryManager.availableActions) { action in
+                actionButton(for: action)
+            }
+        }
+        .padding()
+    }
+
+    /// Individual action button
+    private func actionButton(for action: ErrorRecoveryManager.RecoveryAction) -> some View {
+        Button(action: {
+            Task {
+                await action.action()
+            }
+        }) {
+            HStack {
+                Image(systemName: action.icon)
+                Text(action.title)
+                Spacer()
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(action.isPrimary ? Color.blue : Color.secondary.opacity(0.2))
+            .foregroundColor(action.isPrimary ? .white : .primary)
+            .cornerRadius(10)
+        }
+        .disabled(recoveryManager.isRecovering)
+    }
+
+    /// Done toolbar button
+    private var doneButton: some View {
+        Button("Done") {
+            dismiss()
+            recoveryManager.clearError()
         }
     }
 }
@@ -282,20 +389,30 @@ public protocol ErrorHandlingViewModel: AnyObject {
 extension ErrorHandlingViewModel {
     public func handleError(_ error: VoiceFlowError, component: String, function: String = #function) {
         let context = ErrorReporter.ErrorContext(component: component, function: function)
-        
+
         Task {
             await recoveryManager.handleError(error, context: context)
         }
-        
-        // Show alert for user-facing errors
-        if error.requiresUserAction || error.severity == .high || error.severity == .critical {
-            errorAlertManager.showError(error) {
-                // Primary action - attempt recovery
-                Task {
-                    let _ = await self.recoveryManager.attemptRecovery(for: error)
-                }
+
+        showAlertIfNeeded(for: error)
+    }
+
+    /// Show error alert if the error requires user action
+    private func showAlertIfNeeded(for error: VoiceFlowError) {
+        guard shouldShowAlert(for: error) else { return }
+
+        errorAlertManager.showError(error) {
+            Task {
+                let _ = await self.recoveryManager.attemptRecovery(for: error)
             }
         }
+    }
+
+    /// Determine if an alert should be shown for this error
+    private func shouldShowAlert(for error: VoiceFlowError) -> Bool {
+        error.requiresUserAction ||
+        error.severity == .high ||
+        error.severity == .critical
     }
 }
 
@@ -309,34 +426,44 @@ public struct ErrorHelper {
     
     /// Handle network connectivity errors
     public static func handleNetworkError(_ error: any Error) -> VoiceFlowError {
-        if let urlError = error as? URLError {
-            switch urlError.code {
-            case .notConnectedToInternet:
-                return .networkUnavailable
-            case .timedOut:
-                return .networkTimeout
-            case .badServerResponse:
-                return .invalidServerResponse
-            default:
-                return .networkUnavailable
-            }
+        guard let urlError = error as? URLError else {
+            return .networkUnavailable
         }
-        return .networkUnavailable
+        return mapURLErrorCode(urlError.code)
     }
-    
+
+    /// Map URLError code to VoiceFlowError
+    private static func mapURLErrorCode(_ code: URLError.Code) -> VoiceFlowError {
+        switch code {
+        case .notConnectedToInternet:
+            return .networkUnavailable
+        case .timedOut:
+            return .networkTimeout
+        case .badServerResponse:
+            return .invalidServerResponse
+        default:
+            return .networkUnavailable
+        }
+    }
+
     /// Handle file system errors
     public static func handleFileSystemError(_ error: any Error, filename: String) -> VoiceFlowError {
-        if let nsError = error as NSError? {
-            switch nsError.code {
-            case NSFileReadNoSuchFileError:
-                return .fileNotFound(filename)
-            case NSFileReadNoPermissionError:
-                return .fileAccessDenied(filename)
-            default:
-                return .fileCorrupted(filename)
-            }
+        guard let nsError = error as NSError? else {
+            return .fileCorrupted(filename)
         }
-        return .fileCorrupted(filename)
+        return mapFileSystemErrorCode(nsError.code, filename: filename)
+    }
+
+    /// Map file system error code to VoiceFlowError
+    private static func mapFileSystemErrorCode(_ code: Int, filename: String) -> VoiceFlowError {
+        switch code {
+        case NSFileReadNoSuchFileError:
+            return .fileNotFound(filename)
+        case NSFileReadNoPermissionError:
+            return .fileAccessDenied(filename)
+        default:
+            return .fileCorrupted(filename)
+        }
     }
     
     /// Handle API errors with status codes
