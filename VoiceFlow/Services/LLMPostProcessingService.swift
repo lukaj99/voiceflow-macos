@@ -227,10 +227,11 @@ public class LLMPostProcessingService: ObservableObject {
             // Cache the result
             await MainActor.run {
                 requestCache[cacheKey] = result
-                if requestCache.count > maxCacheSize {
-                    requestCache.removeValue(forKey: requestCache.keys.first!)
+                if requestCache.count > maxCacheSize,
+                   let firstKey = requestCache.keys.first {
+                    requestCache.removeValue(forKey: firstKey)
                 }
-                
+
                 // Update statistics
                 processingStats.totalProcessed += 1
                 processingStats.totalProcessingTime += result.processingTime
@@ -344,7 +345,9 @@ public class LLMPostProcessingService: ObservableObject {
     
     /// Call OpenAI API
     private func callOpenAIAPI(prompt: String, apiKey: String) async throws -> String {
-        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+        guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+            throw ProcessingError.apiCallFailed(message: "Invalid OpenAI API URL")
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -394,7 +397,9 @@ public class LLMPostProcessingService: ObservableObject {
     
     /// Call Claude API
     private func callClaudeAPI(prompt: String, apiKey: String) async throws -> String {
-        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+            throw ProcessingError.apiCallFailed(message: "Invalid Claude API URL")
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

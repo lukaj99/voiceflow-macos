@@ -50,7 +50,7 @@ let package = Package(
                 "VoiceFlow",
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
             ],
-            path: "VoiceFlowTests/LLM",
+            path: "VoiceFlowTests",
             swiftSettings: [
                 .enableUpcomingFeature("ExistentialAny"),
                 .define("SWIFT_CONCURRENCY_STRICT")

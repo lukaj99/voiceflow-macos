@@ -1,0 +1,46 @@
+VoiceFlow Code Quality Report
+Generated: Sun Nov  2 20:54:44 GMT 2025
+================================================================================
+
+Total Swift Files: 38
+
+SwiftLint not installed. Skipping...
+
+Swift 6 Concurrency Compliance
+==============================
+  @MainActor annotations: 55
+  async functions: 141
+  await calls: 262
+  Old-style completion handlers: 0
+  Sendable references: 65
+
+Code Organization
+=================
+Large Files (>500 lines):
+  total (12217 lines)
+  VoiceFlow/Core/Performance/PerformanceMonitor.swift (672 lines)
+  VoiceFlow/Services/DeepgramClient.swift (580 lines)
+  VoiceFlow/Services/LLMPostProcessingService.swift (544 lines)
+  VoiceFlow/Views/LLMAPIKeyConfigurationView.swift (542 lines)
+  VoiceFlow/Core/AppState.swift (533 lines)
+  VoiceFlow/Core/Validation/ValidationFramework.swift (506 lines)
+
+Type Distribution:
+  Protocols: 5
+  Classes: 0
+  Structs: 3
+  Enums: 0
+
+Documentation Coverage
+=====================
+  Documentation comments (///): 393
+  Regular comments (//): 1138
+  Documentation ratio: 3.22%
+
+Testing
+=======
+  Test files: 0
+  Test methods: 0
+
+================================================================================
+Report generated: Sun Nov  2 20:54:44 GMT 2025

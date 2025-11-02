@@ -223,8 +223,8 @@ public final class AppState {
     /// Set error message
     public func setError(_ message: String?) {
         errorMessage = message
-        if message != nil {
-            print("🎯 Error set: \(message!)")
+        if let errorMessage = message {
+            print("🎯 Error set: \(errorMessage)")
         }
     }
     
@@ -270,10 +270,10 @@ public final class AppState {
     /// Set LLM processing error
     public func setLLMProcessingError(_ error: String?) {
         llmProcessingError = error
-        if error != nil {
+        if let errorMessage = error {
             isLLMProcessing = false
             llmProcessingProgress = 0.0
-            print("🤖 LLM processing error: \(error!)")
+            print("🤖 LLM processing error: \(errorMessage)")
         }
     }
     

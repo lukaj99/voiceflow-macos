@@ -67,6 +67,8 @@ VoiceFlow/
 
 ## 🔧 Development Setup
 
+For contributor practices, refer to the streamlined agent guide in [AGENTS.md](AGENTS.md).
+
 ### Prerequisites
 
 - macOS 14.0 or later

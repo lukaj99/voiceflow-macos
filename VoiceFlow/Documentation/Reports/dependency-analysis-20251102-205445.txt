@@ -1,0 +1,99 @@
+VoiceFlow Dependency Analysis Report
+Generated: Sun Nov  2 20:54:45 GMT 2025
+================================================================================
+
+Swift Package Dependencies
+==========================
+
+External Dependencies:
+  .package(url: "https://github.com/soffes/HotKey", from: "0.2.0"),
+  .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0"),
+  .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
+  .package(path: "ThirdParty/Starscream")
+
+Total external dependencies: 4
+
+Resolved Package Versions:
+
+  hotkey: 0.2.1
+  keychainaccess: 4.2.2
+  swift-async-algorithms: 1.0.4
+  swift-collections: 1.2.0
+
+Internal Module Dependencies
+============================
+
+Import Statement Analysis:
+
+Top 20 Most Used Imports:
+    28  Foundation
+    13  SwiftUI
+    12  Combine
+     5  AppKit
+     2  OSLog
+     2  HotKey
+     1  Starscream
+     1  KeychainAccess
+     1  CryptoKit
+     1  AVFoundation
+     1  AsyncAlgorithms
+
+Import Statistics:
+  Total import statements: 67
+  Unique modules imported: 11
+
+Framework Dependencies:
+
+  System frameworks: 0
+  External packages: 11
+
+Module Dependency Graph
+=======================
+
+Core Module Dependencies:
+  ErrorHandling:
+    → OSLog
+  Performance:
+    → OSLog
+
+Circular Dependency Detection
+=============================
+
+Checking for circular dependencies...
+  ✓ No circular dependencies detected
+
+Unused Dependency Detection
+===========================
+
+Checking for unused external dependencies...
+  ⚠ Potentially unused: .package(url:
+  ⚠ Potentially unused: "https://github.com/soffes/HotKey",
+  ⚠ Potentially unused: from:
+  ⚠ Potentially unused: "0.2.0"),
+  ⚠ Potentially unused: .package(url:
+  ⚠ Potentially unused: "https://github.com/kishikawakatsumi/KeychainAccess",
+  ⚠ Potentially unused: from:
+  ⚠ Potentially unused: "4.2.0"),
+  ⚠ Potentially unused: .package(url:
+  ⚠ Potentially unused: "https://github.com/apple/swift-async-algorithms",
+  ⚠ Potentially unused: from:
+  ⚠ Potentially unused: "1.0.0"),
+  ⚠ Potentially unused: .package(path:
+  ⚠ Potentially unused: "ThirdParty/Starscream")
+
+Dependency Health Metrics
+=========================
+
+  Total internal modules: 11
+  Total module dependencies: 13
+  Average dependencies per module: 1.18
+
+Recommendations:
+  1. Minimize external dependencies to reduce maintenance burden
+  2. Break circular dependencies by introducing abstractions
+  3. Remove unused dependencies to reduce build times
+  4. Keep modules loosely coupled for better maintainability
+  5. Consider dependency injection for testability
+
+================================================================================
+Report generated: Sun Nov  2 20:54:45 GMT 2025

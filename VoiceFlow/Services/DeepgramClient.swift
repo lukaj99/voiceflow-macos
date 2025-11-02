@@ -235,7 +235,9 @@ public class DeepgramClient: NSObject, ObservableObject {
     
     /// Build WebSocket URL with optimized parameters
     private func buildWebSocketURL() -> URL? {
-        var urlComponents = URLComponents(string: "wss://api.deepgram.com/v1/listen")!
+        guard var urlComponents = URLComponents(string: "wss://api.deepgram.com/v1/listen") else {
+            return nil
+        }
         urlComponents.queryItems = [
             URLQueryItem(name: "model", value: currentModel.rawValue),
             URLQueryItem(name: "language", value: "en-US"),

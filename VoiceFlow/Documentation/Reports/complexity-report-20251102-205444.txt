@@ -1,0 +1,85 @@
+VoiceFlow Complexity Report
+Generated: Sun Nov  2 20:54:44 GMT 2025
+================================================================================
+
+Cyclomatic Complexity Analysis
+==============================
+
+Top 20 Most Complex Files:
+
+File                                                           Complexity  Functions   Avg/Func
+--------------------------------------------------------------------------------
+Core/ErrorHandling/VoiceFlowError.swift                               151          0          0
+Services/SettingsService.swift                                        136         22          6
+Services/SecureCredentialService.swift                                115         22          5
+Views/HotkeyConfigurationView.swift                                    93         12          7
+Services/SecureNetworkManager.swift                                    87         15          5
+Services/LLMPostProcessingService.swift                                82         16          5
+Services/DeepgramClient.swift                                          81         16          5
+Core/Validation/ValidationFramework.swift                              77         14          5
+Core/Performance/PerformanceMonitor.swift                              69         25          2
+ViewModels/SimpleTranscriptionViewModel.swift                          64         18          3
+Core/AppState.swift                                                    56         28          2
+ViewModels/TranscriptionTextProcessor.swift                            55         24          2
+Core/ErrorHandling/ErrorRecoveryManager.swift                          53          9          5
+Views/LLMAPIKeyConfigurationView.swift                                 52          9          5
+Core/TranscriptionEngine/TranscriptionModels.swift                     47          7          6
+Services/GlobalTextInputService.swift                                  41          9          4
+Core/ErrorHandling/ErrorHandlingExtensions.swift                       39         12          3
+ViewModels/CredentialManager.swift                                     37         10          3
+Services/GlobalHotkeyService.swift                                     36         15          2
+ViewModels/TranscriptionConnectionManager.swift                        32          7          4
+
+Overall Statistics:
+  Total files analyzed: 38
+  Total complexity score: 1649
+  Total functions: 416
+  Average complexity per file: 43.39
+  Average complexity per function: 3.96
+
+Files Exceeding Complexity Threshold (>15):
+
+  Files with high average complexity: 1
+
+  - Views/ContentView.swift (avg: 18)
+
+Code Smells Detection
+=====================
+
+Long Methods (>50 lines):
+  VoiceFlow/ViewModels/GlobalTextInputCoordinator.swift:827 -     public func insertText(_ text: String, isFinal: Bool = true) async -> InsertionResult { (63 lines)
+  VoiceFlow/ViewModels/SimpleTranscriptionViewModel.swift:1026 -     public func startRecording() async { (57 lines)
+  VoiceFlow/ViewModels/SimpleTranscriptionViewModel.swift:1356 -     nonisolated public func deepgramClient(_ client: DeepgramClient, didReceiveTranscript transcript: String, isFinal: Bool) { (75 lines)
+  VoiceFlow/ViewModels/MainTranscriptionViewModel.swift:1578 -     private func setupBindings() { (57 lines)
+  VoiceFlow/ViewModels/TranscriptionTextProcessor.swift:1791 -     private func applyLLMPostProcessing(_ text: String, domain: TextDomain) async -> String { (61 lines)
+  VoiceFlow/Core/ErrorHandling/ErrorRecoveryManager.swift:3449 -     public func getRecoverySuggestions(for error: VoiceFlowError) -> [String] { (51 lines)
+  VoiceFlow/Core/ErrorHandling/ErrorRecoveryManager.swift:3536 -     private func getRecoveryStrategy(for error: VoiceFlowError) -> RecoveryStrategy { (70 lines)
+  VoiceFlow/Core/ErrorHandling/ErrorRecoveryManager.swift:3635 -     private func generateRecoveryActions(for error: VoiceFlowError) -> [RecoveryAction] { (67 lines)
+  VoiceFlow/Core/Performance/PerformanceMonitor.swift:5041 -     public func checkPerformanceHealth() -> PerformanceHealthStatus { (56 lines)
+  VoiceFlow/Core/Validation/ValidationFramework.swift:5547 -     public func validate(_ input: String, rule: ValidationRule) async -> ValidationResult { (70 lines)
+  VoiceFlow/Views/HotkeyConfigurationView.swift:7305 -     private func keyFromKeyCode(_ keyCode: UInt16) -> Key? { (73 lines)
+  VoiceFlow/Views/APIKeyConfigurationView.swift:8627 -     private func configureAPIKey() { (53 lines)
+  VoiceFlow/Services/DeepgramClient.swift:9778 -     nonisolated public func didReceive(event: WebSocketEvent, client: any WebSocketClient) { (107 lines)
+  VoiceFlow/Services/LanguageService.swift:10041 -     private func loadAvailableLanguages() { (66 lines)
+  VoiceFlow/Services/LLMPostProcessingService.swift:10314 -     public func processTranscription(_ text: String, context: String? = nil) async -> Result<ProcessingResult, ProcessingError> { (64 lines)
+
+Deep Nesting Analysis:
+  - ViewModels/SimpleTranscriptionViewModel.swift (max depth: 7)
+  - Core/ErrorHandling/ErrorHandlingExtensions.swift (max depth: 10)
+  - Shared/DesignSystem/LiquidGlassBackground.swift (max depth: 8)
+  - Views/SettingsView.swift (max depth: 10)
+  - Views/HotkeyConfigurationView.swift (max depth: 8)
+  - Views/LLMAPIKeyConfigurationView.swift (max depth: 9)
+  - Views/ContentView.swift (max depth: 9)
+  - Views/APIKeyConfigurationView.swift (max depth: 9)
+
+God Classes (>20 methods):
+
+Refactoring Recommendations:
+  1. Extract complex methods into smaller, focused functions
+  2. Consider splitting large classes into separate concerns
+  3. Reduce nesting depth using guard statements and early returns
+  4. Apply SOLID principles to reduce coupling
+
+================================================================================
+Report generated: Sun Nov  2 20:54:45 GMT 2025

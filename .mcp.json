@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "voiceflow-dev": {
+      "command": "node",
+      "args": [
+        "/Users/lukaj/voiceflow/mcp-servers/voiceflow-dev/index.js"
+      ],
+      "description": "VoiceFlow development tools - performance analysis, memory leak detection, security scanning, benchmarks, and coverage reports"
+    }
+  }
+}

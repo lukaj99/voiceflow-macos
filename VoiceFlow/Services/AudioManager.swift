@@ -51,7 +51,8 @@ public class AudioManager: ObservableObject {
         // Start recording via the audio processor
         try await audioProcessor.startRecording { [weak self] audioData in
             Task { @MainActor [weak self] in
-                self?.delegate?.audioManager(self!, didReceiveAudioData: audioData)
+                guard let self = self else { return }
+                self.delegate?.audioManager(self, didReceiveAudioData: audioData)
             }
         }
         

@@ -502,6 +502,9 @@ public struct ValidationStatistics: Sendable {
 
 extension Character {
     fileprivate var isHexDigit: Bool {
-        return self.isASCII && (self.isNumber || ("a"..."f").contains(self.lowercased().first!) || ("A"..."F").contains(self))
+        guard self.isASCII else { return false }
+        let lowercased = String(self).lowercased()
+        guard let firstChar = lowercased.first else { return false }
+        return self.isNumber || ("a"..."f").contains(firstChar) || ("A"..."F").contains(self)
     }
 }
