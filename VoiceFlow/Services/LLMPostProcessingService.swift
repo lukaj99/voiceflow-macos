@@ -86,7 +86,8 @@ public class LLMPostProcessingService: ObservableObject {
         case rateLimitExceeded
         case textTooLong
         case modelUnavailable
-        
+        case apiCallFailed(message: String)
+
         public var errorDescription: String? {
             switch self {
             case .apiKeyMissing:
@@ -103,6 +104,8 @@ public class LLMPostProcessingService: ObservableObject {
                 return "Text is too long for processing"
             case .modelUnavailable:
                 return "Selected LLM model is currently unavailable"
+            case .apiCallFailed(let message):
+                return "API call failed: \(message)"
             }
         }
     }
@@ -175,19 +178,78 @@ public class LLMPostProcessingService: ObservableObject {
     }
     
     // MARK: - Configuration Methods
-    
-    /// Configure API key for a specific provider
+
+    /// Configure API key for a specific LLM provider.
+    ///
+    /// Stores the API key for authentication with OpenAI or Anthropic Claude services.
+    /// Keys are held in memory during app runtime.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let service = LLMPostProcessingService()
+    /// service.configureAPIKey("sk-...", for: .openAI)
+    /// service.configureAPIKey("sk-ant-...", for: .claude)
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameters:
+    ///   - apiKey: The API key for authentication
+    ///   - provider: The LLM provider (OpenAI or Claude)
+    ///
+    /// - Note: Keys should be stored securely in Keychain for persistence
+    /// - SeeAlso: `isConfigured(for:)`, `LLMProvider`
     public func configureAPIKey(_ apiKey: String, for provider: LLMProvider) {
         apiKeys[provider] = apiKey
         print("🔑 API key configured for \(provider.displayName)")
     }
     
-    /// Check if provider is configured
+    /// Check if provider is configured with API key.
+    ///
+    /// Returns whether an API key has been set for the specified provider.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// if service.isConfigured(for: .openAI) {
+    ///     // OpenAI is ready to use
+    /// }
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameter provider: The LLM provider to check
+    /// - Returns: true if API key is configured, false otherwise
+    /// - SeeAlso: `configureAPIKey(_:for:)`, `getAvailableModels()`
     public func isConfigured(for provider: LLMProvider) -> Bool {
         return apiKeys[provider] != nil
     }
     
-    /// Get available models based on configured providers
+    /// Get available models based on configured providers.
+    ///
+    /// Returns a list of LLM models that can be used, filtered by which providers
+    /// have been configured with API keys.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let models = service.getAvailableModels()
+    /// for model in models {
+    ///     print("\(model.displayName) - \(model.provider.displayName)")
+    /// }
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(n) where n = total model count (4)
+    /// - Memory usage: O(m) where m = configured model count
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Returns: Array of available LLM models
+    /// - SeeAlso: `isConfigured(for:)`, `LLMModel`, `selectedModel`
     public func getAvailableModels() -> [LLMModel] {
         return LLMModel.allCases.filter { model in
             isConfigured(for: model.provider)
@@ -195,8 +257,48 @@ public class LLMPostProcessingService: ObservableObject {
     }
     
     // MARK: - Processing Methods
-    
-    /// Process transcription text with LLM enhancement
+
+    /// Process transcription text with LLM enhancement.
+    ///
+    /// Applies AI-powered post-processing to improve transcription quality through:
+    /// - Grammar and punctuation correction
+    /// - Capitalization fixes
+    /// - Word substitution (e.g., "slash" → "/", "at sign" → "@")
+    /// - Natural language enhancement
+    ///
+    /// Results are cached for efficiency. Processing includes progress tracking
+    /// and comprehensive error handling.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let result = await service.processTranscription(
+    ///     "hello world this is a test slash example",
+    ///     context: "technical documentation"
+    /// )
+    ///
+    /// switch result {
+    /// case .success(let processed):
+    ///     print("Original: \(processed.originalText)")
+    ///     print("Enhanced: \(processed.processedText)")
+    ///     print("Changes: \(processed.changes.count)")
+    /// case .failure(let error):
+    ///     print("Error: \(error.localizedDescription)")
+    /// }
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(n) where n = text length + LLM API latency
+    /// - Memory usage: O(n) for text processing
+    /// - Thread-safe: Yes (MainActor isolated)
+    /// - Typical latency: 500ms - 2s depending on model
+    ///
+    /// - Parameters:
+    ///   - text: The transcription text to process
+    ///   - context: Optional context to guide processing (e.g., "medical", "technical")
+    ///
+    /// - Returns: Result containing ProcessingResult on success or ProcessingError on failure
+    /// - Note: Results are cached; identical requests return cached results
+    /// - SeeAlso: `ProcessingResult`, `ProcessingError`, `selectedModel`
     public func processTranscription(_ text: String, context: String? = nil) async -> Result<ProcessingResult, ProcessingError> {
         guard isEnabled else {
             return .failure(.modelUnavailable)
@@ -510,13 +612,53 @@ public class LLMPostProcessingService: ObservableObject {
         return "\(model.rawValue)_\(textHash)"
     }
     
-    /// Clear processing cache
+    /// Clear processing cache to free memory.
+    ///
+    /// Removes all cached processing results. Useful for:
+    /// - Freeing memory
+    /// - Ensuring fresh processing after configuration changes
+    /// - Testing and debugging
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// service.clearCache()
+    /// // All cached results removed
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: Frees O(n) where n = cache size
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - SeeAlso: `processTranscription(_:context:)`
     public func clearCache() {
         requestCache.removeAll()
         print("🧹 LLM processing cache cleared")
     }
     
-    /// Get processing statistics
+    /// Get processing statistics for monitoring and analytics.
+    ///
+    /// Returns cumulative statistics about LLM processing performance including:
+    /// - Total processed count
+    /// - Success and failure counts
+    /// - Average processing time
+    /// - Success rate
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let stats = service.getStatistics()
+    /// print("Processed: \(stats.totalProcessed)")
+    /// print("Success rate: \(stats.successRate * 100)%")
+    /// print("Avg time: \(stats.averageProcessingTime)s")
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Returns: Processing statistics snapshot
+    /// - SeeAlso: `LLMProcessingStatistics`, `processingStats`
     public func getStatistics() -> LLMProcessingStatistics {
         return processingStats
     }
