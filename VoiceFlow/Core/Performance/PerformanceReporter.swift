@@ -22,7 +22,7 @@ actor PerformanceReporter {
         bufferPool: AudioBufferPool?
     ) async -> PerformanceMetrics {
         guard !history.isEmpty else {
-            return createEmptyMetrics(sessionStartTime: sessionStartTime, bufferPool: bufferPool)
+            return await createEmptyMetrics(sessionStartTime: sessionStartTime, bufferPool: bufferPool)
         }
 
         let count = Double(history.count)
@@ -57,7 +57,7 @@ actor PerformanceReporter {
         bufferPool: AudioBufferPool?
     ) async -> PerformanceMetrics {
         guard !history.isEmpty else {
-            return createEmptyMetrics(sessionStartTime: sessionStartTime, bufferPool: bufferPool)
+            return await createEmptyMetrics(sessionStartTime: sessionStartTime, bufferPool: bufferPool)
         }
 
         let maxCPU = history.map { $0.cpuUsage }.max() ?? 0
