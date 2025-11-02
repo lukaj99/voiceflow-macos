@@ -333,9 +333,9 @@ final class ValidationFrameworkTests: XCTestCase {
     /// Test batch validation functionality
     func testBatchValidation() async throws {
         let inputs: [(String, ValidationFramework.ValidationRule)] = [
-            ("ValidInput1", ValidationFramework.commonRules.userName),
+            ("ValidInput1", await ValidationFramework.commonRules.userName),
             ("valid@email.com", ValidationFramework.ValidationRule(field: "Email", pattern: "^[^@]+@[^@]+\\.[^@]+$")),
-            ("1234567890abcdef1234567890abcdef", ValidationFramework.commonRules.apiKey)
+            ("1234567890abcdef1234567890abcdef", await ValidationFramework.commonRules.apiKey)
         ]
         
         let results = await validator.validateBatch(inputs)
@@ -345,9 +345,9 @@ final class ValidationFrameworkTests: XCTestCase {
         
         // Test with some invalid inputs
         let mixedInputs: [(String, ValidationFramework.ValidationRule)] = [
-            ("ValidInput", ValidationFramework.commonRules.userName),
+            ("ValidInput", await ValidationFramework.commonRules.userName),
             ("invalid-email", ValidationFramework.ValidationRule(field: "Email", pattern: "^[^@]+@[^@]+\\.[^@]+$")),
-            ("short", ValidationFramework.commonRules.apiKey)
+            ("short", await ValidationFramework.commonRules.apiKey)
         ]
         
         let mixedResults = await validator.validateBatch(mixedInputs)
@@ -407,25 +407,25 @@ final class ValidationFrameworkTests: XCTestCase {
     /// Test predefined common validation rules
     func testCommonRules() async throws {
         // Test user name rule
-        let validUserName = await validator.validate("John_Doe", rule: ValidationFramework.commonRules.userName)
+        let validUserName = await validator.validate("John_Doe", rule: await ValidationFramework.commonRules.userName)
         XCTAssertTrue(validUserName.isValid, "Valid user name should pass")
-        
-        let invalidUserName = await validator.validate("J", rule: ValidationFramework.commonRules.userName)
+
+        let invalidUserName = await validator.validate("J", rule: await ValidationFramework.commonRules.userName)
         XCTAssertFalse(invalidUserName.isValid, "Too short user name should fail")
-        
+
         // Test file name rule
-        let validFileName = await validator.validate("document.pdf", rule: ValidationFramework.commonRules.fileName)
+        let validFileName = await validator.validate("document.pdf", rule: await ValidationFramework.commonRules.fileName)
         XCTAssertTrue(validFileName.isValid, "Valid file name should pass")
-        
-        let invalidFileName = await validator.validate("file|with|pipes", rule: ValidationFramework.commonRules.fileName)
+
+        let invalidFileName = await validator.validate("file|with|pipes", rule: await ValidationFramework.commonRules.fileName)
         XCTAssertFalse(invalidFileName.isValid, "File name with illegal characters should fail")
-        
+
         // Test transcription text rule
-        let validTranscription = await validator.validate("This is transcribed text.", rule: ValidationFramework.commonRules.transcriptionText)
+        let validTranscription = await validator.validate("This is transcribed text.", rule: await ValidationFramework.commonRules.transcriptionText)
         XCTAssertTrue(validTranscription.isValid, "Valid transcription should pass")
-        
+
         // Test settings value rule
-        let validSetting = await validator.validate("enabled", rule: ValidationFramework.commonRules.settingsValue)
+        let validSetting = await validator.validate("enabled", rule: await ValidationFramework.commonRules.settingsValue)
         XCTAssertTrue(validSetting.isValid, "Valid setting should pass")
     }
     
@@ -453,7 +453,7 @@ final class ValidationFrameworkTests: XCTestCase {
     /// Test concurrent validation operations
     func testConcurrentValidation() async throws {
         let inputs = (1...100).map { "test_input_\($0)" }
-        let rule = ValidationFramework.commonRules.userName
+        let rule = await ValidationFramework.commonRules.userName
         
         await withTaskGroup(of: ValidationFramework.ValidationResult.self) { group in
             for input in inputs {
