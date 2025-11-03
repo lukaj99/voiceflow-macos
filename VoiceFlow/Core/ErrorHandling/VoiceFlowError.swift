@@ -81,7 +81,8 @@ public enum VoiceFlowError: LocalizedError, Sendable, Hashable {
         switch self {
         // Audio Errors
         case .microphonePermissionDenied:
-            return "Microphone access is required for voice transcription. Please grant microphone permissions in System Settings > Privacy & Security > Microphone."
+            return "Microphone access is required for voice transcription. " +
+                "Please grant microphone permissions in System Settings > Privacy & Security > Microphone."
 
         case .audioDeviceUnavailable:
             return "No audio input device available. Please check that a microphone is connected and working."
@@ -97,7 +98,8 @@ public enum VoiceFlowError: LocalizedError, Sendable, Hashable {
 
         // Transcription Errors
         case .transcriptionServiceUnavailable:
-            return "Transcription service is currently unavailable. Please check your internet connection and try again."
+            return "Transcription service is currently unavailable. " +
+                "Please check your internet connection and try again."
 
         case .transcriptionConnectionFailed(let details):
             return "Failed to connect to transcription service: \(details)"
@@ -199,7 +201,8 @@ public enum VoiceFlowError: LocalizedError, Sendable, Hashable {
             return "Security threat detected: \(threat). Input has been blocked for safety."
 
         case .accessibilityPermissionDenied:
-            return "Accessibility permissions required for global text input. Please grant permissions in System Settings > Privacy & Security > Accessibility."
+            return "Accessibility permissions required for global text input. " +
+                "Please grant permissions in System Settings > Privacy & Security > Accessibility."
 
         case .unauthorizedAccess(let resource):
             return "Unauthorized access to \(resource)."

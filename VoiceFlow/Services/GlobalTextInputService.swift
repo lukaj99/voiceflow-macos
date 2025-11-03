@@ -148,7 +148,13 @@ public class GlobalTextInputService: ObservableObject {
             }
         }
 
-        return success ? .success : .insertionFailed(NSError(domain: "GlobalTextInput", code: 1, userInfo: [NSLocalizedDescriptionKey: "Paste simulation failed"]))
+        return success ? .success : .insertionFailed(
+            NSError(
+                domain: "GlobalTextInput",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Paste simulation failed"]
+            )
+        )
     }
 
     private func insertViaKeyEvents(_ text: String) async -> InsertionResult {
@@ -157,7 +163,13 @@ public class GlobalTextInputService: ObservableObject {
             for char in text {
                 let success = await simulateKeyPress(for: char)
                 if !success {
-                    return .insertionFailed(NSError(domain: "GlobalTextInput", code: 2, userInfo: [NSLocalizedDescriptionKey: "Key simulation failed for character: \(char)"]))
+                    return .insertionFailed(
+                        NSError(
+                            domain: "GlobalTextInput",
+                            code: 2,
+                            userInfo: [NSLocalizedDescriptionKey: "Key simulation failed for character: \(char)"]
+                        )
+                    )
                 }
 
                 // Small delay between characters for reliability

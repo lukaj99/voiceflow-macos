@@ -147,10 +147,10 @@ struct WindowSize: Sendable, Equatable {
 
 /// Window position on screen
 struct WindowPosition: Sendable {
-    let x: CGFloat
-    let y: CGFloat
+    let xPosition: CGFloat
+    let yPosition: CGFloat
 
-    static let center = WindowPosition(x: 0, y: 0)
+    static let center = WindowPosition(xPosition: 0, yPosition: 0)
 }
 
 /// Window style options

@@ -205,7 +205,11 @@ extension TranscriptionCoordinator: AudioManagerDelegate {
 
 extension TranscriptionCoordinator: DeepgramClientDelegate {
 
-    nonisolated public func deepgramClient(_ client: DeepgramClient, didReceiveTranscript transcript: String, isFinal: Bool) {
+    nonisolated public func deepgramClient(
+        _ client: DeepgramClient,
+        didReceiveTranscript transcript: String,
+        isFinal: Bool
+    ) {
         Task { @MainActor in
             let processedText = await textProcessor.processTranscript(transcript, isFinal: isFinal)
 

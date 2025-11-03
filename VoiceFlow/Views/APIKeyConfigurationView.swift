@@ -67,12 +67,15 @@ public struct APIKeyConfigurationView: View {
                                 .foregroundColor(isValidInput ? .green : .red)
                         }
 
-                        Button(action: {
-                            isShowingKey.toggle()
-                        }) {
-                            Image(systemName: isShowingKey ? "eye.slash" : "eye")
-                                .foregroundColor(.secondary)
-                        }
+                        Button(
+                            action: {
+                                isShowingKey.toggle()
+                            },
+                            label: {
+                                Image(systemName: isShowingKey ? "eye.slash" : "eye")
+                                    .foregroundColor(.secondary)
+                            }
+                        )
                     }
 
                     Group {

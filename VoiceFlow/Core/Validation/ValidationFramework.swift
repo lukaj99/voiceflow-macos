@@ -220,7 +220,10 @@ public actor ValidationFramework {
         if isValid {
             await auditLog.logValidationSuccess(field: field)
         } else {
-            await auditLog.logValidationFailure(field: field, error: errors.map(\.localizedDescription).joined(separator: "; "))
+            await auditLog.logValidationFailure(
+                field: field,
+                error: errors.map(\.localizedDescription).joined(separator: "; ")
+            )
         }
     }
 
@@ -248,11 +251,13 @@ public actor ValidationFramework {
 
             // Check for obviously fake or test keys
             let suspiciousPatterns = ["test", "fake", "demo", "example", "1234", "abcd"]
-            for pattern in suspiciousPatterns {
-                if apiKey.lowercased().contains(pattern) {
-                    await auditLog.logSecurityThreat(field: "API Key", threat: .scriptInjection, input: "Suspicious API key pattern")
-                    break
-                }
+            for pattern in suspiciousPatterns where apiKey.lowercased().contains(pattern) {
+                await auditLog.logSecurityThreat(
+                    field: "API Key",
+                    threat: .scriptInjection,
+                    input: "Suspicious API key pattern"
+                )
+                break
             }
         }
 
@@ -270,7 +275,8 @@ public actor ValidationFramework {
         )
 
         let result = await validate(email, rule: rule)
-        if !result.isValid && !result.errors.contains(where: { if case .invalidFormat = $0 { return true }; return false }) {
+        if !result.isValid &&
+           !result.errors.contains(where: { if case .invalidFormat = $0 { return true }; return false }) {
             var errors = result.errors
             errors.append(.invalidEmail(field: "Email"))
             return ValidationResult(isValid: false, errors: errors)
@@ -302,9 +308,17 @@ public actor ValidationFramework {
     }
 
     /// Validate numeric range
-    public func validateNumericRange(_ value: Double, field: String, min: Double, max: Double) async -> ValidationResult {
+    public func validateNumericRange(
+        _ value: Double,
+        field: String,
+        min: Double,
+        max: Double
+    ) async -> ValidationResult {
         if value < min || value > max {
-            await auditLog.logValidationFailure(field: field, error: "Value \(value) outside range [\(min), \(max)]")
+            await auditLog.logValidationFailure(
+                field: field,
+                error: "Value \(value) outside range [\(min), \(max)]"
+            )
             return ValidationResult(
                 isValid: false,
                 errors: [.invalidRange(field: field, min: min, max: max, actual: value)]
@@ -337,7 +351,8 @@ public actor ValidationFramework {
     /// Initialize security threat detection patterns
     private func initializeSecurityPatterns() async {
         let patterns: [SecurityThreat: String] = [
-            .sqlInjection: "(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute|script|javascript|vbscript)",
+            .sqlInjection:
+                "(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute|script|javascript|vbscript)",
             .xssAttempt: "(?i)(<script|javascript:|on\\w+\\s*=|<iframe|<object|<embed)",
             .commandInjection: "(?i)(\\||;|&|`|\\$\\(|\\$\\{|%\\(|%\\{)",
             .pathTraversal: "(\\.\\./|\\.\\\\|%2e%2e%2f|%2e%2e%5c)",
@@ -345,7 +360,8 @@ public actor ValidationFramework {
             .htmlInjection: "(?i)(<\\w+|<\\/\\w+|&lt;|&gt;|&#x|&#\\d)"
         ]
 
-        for (threat, pattern) in patterns {
+        for (threat, pattern) in patterns where
+            (try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])) != nil {
             if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
                 securityPatterns[threat] = regex
             }

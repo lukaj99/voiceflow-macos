@@ -372,9 +372,10 @@ public struct ErrorRecoveryView: View {
 
     /// Individual action button
     private func actionButton(for action: ErrorRecoveryManager.RecoveryAction) -> some View {
-        Button(action: { performAction(action) }) {
-            actionButtonContent(for: action)
-        }
+        Button(
+            action: { performAction(action) },
+            label: { actionButtonContent(for: action) }
+        )
         .disabled(recoveryManager.isRecovering)
     }
 

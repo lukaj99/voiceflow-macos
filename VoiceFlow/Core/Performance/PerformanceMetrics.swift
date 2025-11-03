@@ -1,10 +1,10 @@
 import Foundation
 import AVFoundation
 
+// MARK: - Core Metrics
+
 /// Performance metrics data models and supporting types for VoiceFlow monitoring
 /// Single Responsibility: Define all performance-related data structures
-
-// MARK: - Core Metrics
 
 /// Comprehensive snapshot of system performance metrics
 public struct PerformanceMetrics: Sendable, Codable {

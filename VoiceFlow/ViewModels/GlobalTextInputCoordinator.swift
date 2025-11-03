@@ -83,7 +83,10 @@ public class GlobalTextInputCoordinator: ObservableObject {
             } else {
                 self.isEnabled = false
                 self.appState.globalInputEnabled = false
-                self.setPermissionError("Accessibility permissions required. Please grant permissions in System Settings > Privacy & Security > Accessibility.")
+                self.setPermissionError(
+                    "Accessibility permissions required. Please grant permissions in System Settings > " +
+                    "Privacy & Security > Accessibility."
+                )
                 print("❌ Global text input failed: No permissions")
             }
         }
@@ -243,7 +246,13 @@ public struct InsertionStatistics {
     public let successRate: Double
     public let lastInsertionTime: Date?
 
-    public init(totalInsertions: Int, successfulInsertions: Int, failedInsertions: Int, successRate: Double, lastInsertionTime: Date?) {
+    public init(
+        totalInsertions: Int,
+        successfulInsertions: Int,
+        failedInsertions: Int,
+        successRate: Double,
+        lastInsertionTime: Date?
+    ) {
         self.totalInsertions = totalInsertions
         self.successfulInsertions = successfulInsertions
         self.failedInsertions = failedInsertions

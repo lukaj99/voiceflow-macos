@@ -215,7 +215,8 @@ public class SimpleTranscriptionViewModel: ObservableObject {
             let connectionTimeout = 10.0
             let startTime = Date()
 
-            while deepgramClient.connectionState != .connected && Date().timeIntervalSince(startTime) < connectionTimeout {
+            while deepgramClient.connectionState != .connected &&
+                  Date().timeIntervalSince(startTime) < connectionTimeout {
                 if deepgramClient.connectionState == .error {
                     errorMessage = "Failed to connect to Deepgram service"
                     return
@@ -396,7 +397,9 @@ public class SimpleTranscriptionViewModel: ObservableObject {
                     try await credentialService.configureFromEnvironment()
                     print("🔐 Credentials reconfigured from environment")
                 } catch {
-                    throw SecureCredentialService.CredentialError.keyNotFound("No API key provided and none found in environment. Please provide an API key.")
+                    throw SecureCredentialService.CredentialError.keyNotFound(
+                        "No API key provided and none found in environment. Please provide an API key."
+                    )
                 }
             }
 
@@ -465,7 +468,8 @@ public class SimpleTranscriptionViewModel: ObservableObject {
                 print("🌐 Global input mode enabled")
             } else {
                 self.globalInputEnabled = false
-                self.errorMessage = "Accessibility permissions required for global text input. Please grant permissions in System Settings > Privacy & Security > Accessibility."
+                self.errorMessage = "Accessibility permissions required for global text input. " +
+                    "Please grant permissions in System Settings > Privacy & Security > Accessibility."
                 print("❌ Global input mode failed: No accessibility permissions")
             }
         }
@@ -528,10 +532,8 @@ public class SimpleTranscriptionViewModel: ObservableObject {
         let words = lowercaseText.components(separatedBy: CharacterSet.alphanumerics.inverted)
 
         var medicalWordCount = 0
-        for word in words {
-            if medicalTerms.contains(word) {
-                medicalWordCount += 1
-            }
+        for word in words where medicalTerms.contains(word) {
+            medicalWordCount += 1
         }
 
         // Update statistics
@@ -629,7 +631,11 @@ extension SimpleTranscriptionViewModel: AudioManagerDelegate {
 
 extension SimpleTranscriptionViewModel: DeepgramClientDelegate {
 
-    nonisolated public func deepgramClient(_ client: DeepgramClient, didReceiveTranscript transcript: String, isFinal: Bool) {
+    nonisolated public func deepgramClient(
+        _ client: DeepgramClient,
+        didReceiveTranscript transcript: String,
+        isFinal: Bool
+    ) {
         Task { @MainActor in
             if isFinal {
                 await handleFinalTranscript(transcript)

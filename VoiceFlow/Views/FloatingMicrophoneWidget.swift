@@ -44,14 +44,23 @@ public class FloatingMicrophoneWidget: NSObject, ObservableObject {
         let screenFrame = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1920, height: 1080)
 
         let widgetSize = CGSize(width: 200, height: 120)
-        let x = min(max(mouseLocation.x - widgetSize.width/2, 50), screenFrame.width - widgetSize.width - 50)
-        let y = min(max(mouseLocation.y - widgetSize.height/2, 50), screenFrame.height - widgetSize.height - 50)
+        let xPosition = min(
+            max(mouseLocation.x - widgetSize.width/2, 50),
+            screenFrame.width - widgetSize.width - 50
+        )
+        let yPosition = min(
+            max(mouseLocation.y - widgetSize.height/2, 50),
+            screenFrame.height - widgetSize.height - 50
+        )
 
-        window.setFrame(NSRect(x: x, y: y, width: widgetSize.width, height: widgetSize.height), display: true)
+        window.setFrame(
+            NSRect(x: xPosition, y: yPosition, width: widgetSize.width, height: widgetSize.height),
+            display: true
+        )
         window.makeKeyAndOrderFront(nil)
         window.level = .floating
 
-        print("🎤 Floating widget shown at (\(x), \(y))")
+        print("🎤 Floating widget shown at (\(xPosition), \(yPosition))")
     }
 
     /// Hide the floating widget

@@ -102,7 +102,10 @@ public struct SettingsView: View {
 
                     if AppState.shared.llmPostProcessingEnabled {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Improves transcription accuracy with grammar correction, punctuation, and word substitution (e.g., 'slash' → '/')")
+                            Text(
+                                "Improves transcription accuracy with grammar correction, punctuation, " +
+                                "and word substitution (e.g., 'slash' → '/')"
+                            )
                                 .font(.caption)
                                 .foregroundColor(.secondary)
 
@@ -185,7 +188,10 @@ public struct SettingsView: View {
                                     Text("Statistics:")
                                         .font(.caption)
                                         .fontWeight(.medium)
-                                    Text("Processed: \(stats.totalProcessed), Success: \(String(format: "%.1f", stats.successRate * 100))%")
+                                    Text(
+                                        "Processed: \(stats.totalProcessed), " +
+                                        "Success: \(String(format: "%.1f", stats.successRate * 100))%"
+                                    )
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     Text("Avg Processing: \(String(format: "%.1f", stats.averageProcessingTime))s")
@@ -253,7 +259,10 @@ public struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown")
+                        Text(
+                            Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ??
+                            "Unknown"
+                        )
                             .foregroundColor(.secondary)
                     }
 
