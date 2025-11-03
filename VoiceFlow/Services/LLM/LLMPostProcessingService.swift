@@ -6,110 +6,6 @@ import Combine
 @MainActor
 public class LLMPostProcessingService: ObservableObject {
 
-    // MARK: - Types
-
-    public enum LLMProvider: String, CaseIterable {
-        case openAI = "openai"
-        case claude = "claude"
-
-        public var displayName: String {
-            switch self {
-            case .openAI: return "OpenAI GPT"
-            case .claude: return "Anthropic Claude"
-            }
-        }
-
-        public var models: [LLMModel] {
-            switch self {
-            case .openAI: return [.gpt4oMini, .gpt4o]
-            case .claude: return [.claudeHaiku, .claudeSonnet]
-            }
-        }
-    }
-
-    public enum LLMModel: String, CaseIterable, Sendable {
-        case gpt4oMini = "gpt-4o-mini"
-        case gpt4o = "gpt-4o"
-        case claudeHaiku = "claude-3-haiku-20240307"
-        case claudeSonnet = "claude-3-sonnet-20240229"
-
-        public var displayName: String {
-            switch self {
-            case .gpt4oMini: return "GPT-4o Mini"
-            case .gpt4o: return "GPT-4o"
-            case .claudeHaiku: return "Claude 3 Haiku"
-            case .claudeSonnet: return "Claude 3 Sonnet"
-            }
-        }
-
-        public var provider: LLMProvider {
-            switch self {
-            case .gpt4oMini, .gpt4o: return .openAI
-            case .claudeHaiku, .claudeSonnet: return .claude
-            }
-        }
-
-        public var isRecommended: Bool {
-            return self == .gpt4oMini || self == .claudeHaiku
-        }
-    }
-
-    public struct ProcessingResult: Sendable {
-        public let originalText: String
-        public let processedText: String
-        public let improvementScore: Float
-        public let processingTime: TimeInterval
-        public let model: LLMModel
-        public let changes: [TextChange]
-
-        public struct TextChange: Sendable {
-            public let type: ChangeType
-            public let original: String
-            public let replacement: String
-            public let reason: String
-
-            public enum ChangeType: Sendable {
-                case grammar
-                case punctuation
-                case wordSubstitution
-                case capitalization
-                case formatting
-            }
-        }
-    }
-
-    public enum ProcessingError: Error, LocalizedError {
-        case apiKeyMissing
-        case apiKeyInvalid
-        case networkError(String)
-        case invalidResponse
-        case rateLimitExceeded
-        case textTooLong
-        case modelUnavailable
-        case apiCallFailed(message: String)
-
-        public var errorDescription: String? {
-            switch self {
-            case .apiKeyMissing:
-                return "LLM API key is missing. Please configure it in Settings."
-            case .apiKeyInvalid:
-                return "LLM API key is invalid. Please check your credentials."
-            case .networkError(let message):
-                return "Network error: \(message)"
-            case .invalidResponse:
-                return "Invalid response from LLM service"
-            case .rateLimitExceeded:
-                return "Rate limit exceeded. Please try again later."
-            case .textTooLong:
-                return "Text is too long for processing"
-            case .modelUnavailable:
-                return "Selected LLM model is currently unavailable"
-            case .apiCallFailed(let message):
-                return "API call failed: \(message)"
-            }
-        }
-    }
-
     // MARK: - Published Properties
 
     @Published public var isProcessing = false
@@ -129,50 +25,13 @@ public class LLMPostProcessingService: ObservableObject {
     // MARK: - Private Properties
 
     private var apiKeys: [LLMProvider: String] = [:]
-    private let httpClient = URLSession.shared
+    private let cacheManager: LLMCacheManager
     private var processingQueue: DispatchQueue
-    private var requestCache: [String: ProcessingResult] = [:]
-    private let maxCacheSize = 100
-
-    // Word substitution rules
-    private let wordSubstitutions: [String: String] = [
-        "slash": "/",
-        "backslash": "\\",
-        "at sign": "@",
-        "hashtag": "#",
-        "dollar sign": "$",
-        "percent": "%",
-        "ampersand": "&",
-        "asterisk": "*",
-        "plus": "+",
-        "equals": "=",
-        "dash": "-",
-        "underscore": "_",
-        "pipe": "|",
-        "tilde": "~",
-        "caret": "^",
-        "question mark": "?",
-        "exclamation mark": "!",
-        "period": ".",
-        "comma": ",",
-        "semicolon": ";",
-        "colon": ":",
-        "open parenthesis": "(",
-        "close parenthesis": ")",
-        "open bracket": "[",
-        "close bracket": "]",
-        "open brace": "{",
-        "close brace": "}",
-        "less than": "<",
-        "greater than": ">",
-        "quote": "\"",
-        "single quote": "'",
-        "backtick": "`"
-    ]
 
     // MARK: - Initialization
 
     public init() {
+        self.cacheManager = LLMCacheManager(maxSize: 100)
         self.processingQueue = DispatchQueue(label: "com.voiceflow.llm-processing", qos: .userInitiated)
         print("🤖 LLM Post-Processing Service initialized")
     }
@@ -309,13 +168,11 @@ public class LLMPostProcessingService: ObservableObject {
         }
 
         // Check cache first
-        let cacheKey = generateCacheKey(text: text, model: selectedModel)
-        if let cachedResult = requestCache[cacheKey] {
+        let cacheKey = cacheManager.generateKey(text: text, model: selectedModel)
+        if let cachedResult = cacheManager.get(key: cacheKey) {
             print("📋 Using cached result for text processing")
             return .success(cachedResult)
         }
-
-        // Removed unused startTime
 
         await MainActor.run {
             isProcessing = true
@@ -328,11 +185,7 @@ public class LLMPostProcessingService: ObservableObject {
 
             // Cache the result
             await MainActor.run {
-                requestCache[cacheKey] = result
-                if requestCache.count > maxCacheSize,
-                   let firstKey = requestCache.keys.first {
-                    requestCache.removeValue(forKey: firstKey)
-                }
+                cacheManager.set(key: cacheKey, result: result)
 
                 // Update statistics
                 processingStats.totalProcessed += 1
@@ -383,13 +236,20 @@ public class LLMPostProcessingService: ObservableObject {
             processingProgress = 0.5
         }
 
-        let response = try await callLLMAPI(prompt: prompt, apiKey: apiKey)
+        let provider = LLMProviderFactory.createProvider(for: selectedModel.provider)
+        let response = try await provider.callAPI(
+            prompt: prompt,
+            apiKey: apiKey,
+            model: selectedModel,
+            maxTokens: maxTokens,
+            temperature: temperature
+        )
 
         await MainActor.run {
             processingProgress = 0.8
         }
 
-        let result = try parseResponse(response, originalText: text, startTime: startTime)
+        let result = parseResponse(response, originalText: text, startTime: startTime)
 
         await MainActor.run {
             processingProgress = 1.0
@@ -419,7 +279,7 @@ public class LLMPostProcessingService: ObservableObject {
 
         if enableWordSubstitution {
             prompt += "Common word substitutions to apply:\n"
-            for (spoken, symbol) in wordSubstitutions {
+            for (spoken, symbol) in WordSubstitutions.mappings {
                 prompt += "- \"\(spoken)\" → \"\(symbol)\"\n"
             }
             prompt += "\n"
@@ -435,120 +295,8 @@ public class LLMPostProcessingService: ObservableObject {
         return prompt
     }
 
-    /// Call the appropriate LLM API
-    private func callLLMAPI(prompt: String, apiKey: String) async throws -> String {
-        switch selectedModel.provider {
-        case .openAI:
-            return try await callOpenAIAPI(prompt: prompt, apiKey: apiKey)
-        case .claude:
-            return try await callClaudeAPI(prompt: prompt, apiKey: apiKey)
-        }
-    }
-
-    /// Call OpenAI API
-    private func callOpenAIAPI(prompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-            throw ProcessingError.apiCallFailed(message: "Invalid OpenAI API URL")
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("VoiceFlow/1.0", forHTTPHeaderField: "User-Agent")
-
-        let requestBody = [
-            "model": selectedModel.rawValue,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ],
-            "max_tokens": maxTokens,
-            "temperature": temperature,
-            "presence_penalty": 0.1,
-            "frequency_penalty": 0.1
-        ] as [String: Any]
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-
-        let (data, response) = try await httpClient.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ProcessingError.networkError("Invalid response")
-        }
-
-        switch httpResponse.statusCode {
-        case 200:
-            break
-        case 401:
-            throw ProcessingError.apiKeyInvalid
-        case 429:
-            throw ProcessingError.rateLimitExceeded
-        default:
-            throw ProcessingError.networkError("HTTP \(httpResponse.statusCode)")
-        }
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let firstChoice = choices.first,
-              let message = firstChoice["message"] as? [String: Any],
-              let content = message["content"] as? String else {
-            throw ProcessingError.invalidResponse
-        }
-
-        return content.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    /// Call Claude API
-    private func callClaudeAPI(prompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-            throw ProcessingError.apiCallFailed(message: "Invalid Claude API URL")
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue("VoiceFlow/1.0", forHTTPHeaderField: "User-Agent")
-
-        let requestBody = [
-            "model": selectedModel.rawValue,
-            "max_tokens": maxTokens,
-            "temperature": temperature,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
-        ] as [String: Any]
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-
-        let (data, response) = try await httpClient.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ProcessingError.networkError("Invalid response")
-        }
-
-        switch httpResponse.statusCode {
-        case 200:
-            break
-        case 401:
-            throw ProcessingError.apiKeyInvalid
-        case 429:
-            throw ProcessingError.rateLimitExceeded
-        default:
-            throw ProcessingError.networkError("HTTP \(httpResponse.statusCode)")
-        }
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let content = json["content"] as? [[String: Any]],
-              let firstContent = content.first,
-              let text = firstContent["text"] as? String else {
-            throw ProcessingError.invalidResponse
-        }
-
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
     /// Parse the LLM response and create a processing result
-    private func parseResponse(_ response: String, originalText: String, startTime: Date) throws -> ProcessingResult {
+    private func parseResponse(_ response: String, originalText: String, startTime: Date) -> ProcessingResult {
         let processingTime = Date().timeIntervalSince(startTime)
 
         // Analyze changes made
@@ -572,7 +320,7 @@ public class LLMPostProcessingService: ObservableObject {
         var changes: [ProcessingResult.TextChange] = []
 
         // Simple word substitution detection
-        for (spoken, symbol) in wordSubstitutions {
+        for (spoken, symbol) in WordSubstitutions.mappings {
             if original.localizedCaseInsensitiveContains(spoken) && processed.contains(symbol) {
                 changes.append(ProcessingResult.TextChange(
                     type: .wordSubstitution,
@@ -606,12 +354,6 @@ public class LLMPostProcessingService: ObservableObject {
         return min(1.0, Float(changes.count) * scorePerChange)
     }
 
-    /// Generate cache key for request
-    private func generateCacheKey(text: String, model: LLMModel) -> String {
-        let textHash = text.hash
-        return "\(model.rawValue)_\(textHash)"
-    }
-
     /// Clear processing cache to free memory.
     ///
     /// Removes all cached processing results. Useful for:
@@ -632,8 +374,7 @@ public class LLMPostProcessingService: ObservableObject {
     ///
     /// - SeeAlso: `processTranscription(_:context:)`
     public func clearCache() {
-        requestCache.removeAll()
-        print("🧹 LLM processing cache cleared")
+        cacheManager.clear()
     }
 
     /// Get processing statistics for monitoring and analytics.
@@ -661,32 +402,5 @@ public class LLMPostProcessingService: ObservableObject {
     /// - SeeAlso: `LLMProcessingStatistics`, `processingStats`
     public func getStatistics() -> LLMProcessingStatistics {
         return processingStats
-    }
-}
-
-// MARK: - Supporting Types
-
-public struct LLMProcessingStatistics: Sendable {
-    public var totalProcessed: Int = 0
-    public var successfulProcessings: Int = 0
-    public var failedProcessings: Int = 0
-    public var totalProcessingTime: TimeInterval = 0
-    public var averageProcessingTime: TimeInterval = 0
-
-    public var successRate: Float {
-        guard totalProcessed > 0 else { return 0.0 }
-        return Float(successfulProcessings) / Float(totalProcessed)
-    }
-
-    public mutating func recordProcessing(success: Bool, processingTime: TimeInterval, improvementScore: Float = 0.0) {
-        totalProcessed += 1
-        totalProcessingTime += processingTime
-        averageProcessingTime = totalProcessingTime / Double(totalProcessed)
-
-        if success {
-            successfulProcessings += 1
-        } else {
-            failedProcessings += 1
-        }
     }
 }

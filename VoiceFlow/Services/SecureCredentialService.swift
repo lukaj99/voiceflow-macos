@@ -1,20 +1,6 @@
 import Foundation
 import KeychainAccess
 
-// MARK: - Supporting Types for LLM Integration
-
-public enum LLMProvider: String, CaseIterable {
-    case openAI = "openai"
-    case claude = "claude"
-
-    public var displayName: String {
-        switch self {
-        case .openAI: return "OpenAI GPT"
-        case .claude: return "Anthropic Claude"
-        }
-    }
-}
-
 /// Actor-isolated service for secure credential management using keychain storage
 /// Follows Swift 6 concurrency best practices and 2025 security standards
 public actor SecureCredentialService {
