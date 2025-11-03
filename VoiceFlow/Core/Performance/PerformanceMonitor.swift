@@ -137,8 +137,28 @@ public actor PerformanceMonitor {
     }
     
     // MARK: - Public Interface
-    
-    /// Start performance monitoring
+
+    /// Start performance monitoring with optional audio buffer pool tracking.
+    ///
+    /// Initiates continuous performance monitoring including CPU, memory, network latency,
+    /// and audio buffer pool statistics. Collects metrics every 5 seconds for analysis.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let monitor = PerformanceMonitor.shared
+    /// let bufferPool = AudioBufferPool.shared
+    /// await monitor.startMonitoring(bufferPool: bufferPool)
+    /// // Monitoring active, metrics collected every 5s
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1) initialization
+    /// - Memory usage: O(n) where n = maxHistorySize (1000 samples)
+    /// - Thread-safe: Yes (actor isolated)
+    ///
+    /// - Parameter bufferPool: Optional audio buffer pool for pool statistics tracking
+    /// - Note: Monitoring runs on a background timer until stopMonitoring() is called
+    /// - SeeAlso: `stopMonitoring()`, `getCurrentMetrics()`
     public func startMonitoring(bufferPool: AudioBufferPool? = nil) {
         guard !isMonitoring else { return }
         
@@ -156,7 +176,23 @@ public actor PerformanceMonitor {
         }
     }
     
-    /// Stop performance monitoring
+    /// Stop performance monitoring and cease metric collection.
+    ///
+    /// Halts the periodic metrics collection timer. Existing metrics history
+    /// is preserved and can still be queried.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// await monitor.stopMonitoring()
+    /// // Monitoring stopped, history retained
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (actor isolated)
+    ///
+    /// - SeeAlso: `startMonitoring(bufferPool:)`, `clearHistory()`
     public func stopMonitoring() {
         guard isMonitoring else { return }
         
@@ -164,7 +200,24 @@ public actor PerformanceMonitor {
         logger.info("📊 Performance monitoring stopped")
     }
     
-    /// Record a performance operation
+    /// Record a performance operation for throughput tracking.
+    ///
+    /// Increments the operation counter used to calculate operations per second.
+    /// Call this method for each significant operation (API call, transcription, etc).
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// await monitor.recordOperation()
+    /// // Operation count incremented
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (actor isolated)
+    ///
+    /// - Note: Used for throughput calculations in getCurrentMetrics()
+    /// - SeeAlso: `getCurrentMetrics()`, `PerformanceMetrics.operationsPerSecond`
     public func recordOperation() {
         operationCount += 1
     }
@@ -203,7 +256,30 @@ public actor PerformanceMonitor {
         }
     }
     
-    /// Get current performance metrics
+    /// Get current performance metrics snapshot.
+    ///
+    /// Returns a comprehensive snapshot of current system performance including:
+    /// - CPU usage
+    /// - Memory consumption
+    /// - Disk space
+    /// - Audio buffer pool statistics
+    /// - Session duration
+    /// - Operations per second
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let metrics = await monitor.getCurrentMetrics()
+    /// print("CPU: \(metrics.cpuUsage)%")
+    /// print("Memory: \(metrics.memoryUsageMB)MB")
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1) - creates one metrics struct
+    /// - Thread-safe: Yes (actor isolated)
+    ///
+    /// - Returns: Current performance metrics snapshot
+    /// - SeeAlso: `PerformanceMetrics`, `getPerformanceHistory(limit:)`
     public func getCurrentMetrics() async -> PerformanceMetrics {
         let currentTime = Date()
         let sessionDuration = currentTime.timeIntervalSince(sessionStartTime)
@@ -235,7 +311,31 @@ public actor PerformanceMonitor {
         return Array(performanceAlerts.suffix(limit))
     }
     
-    /// Generate performance profile
+    /// Generate comprehensive performance profile with recommendations.
+    ///
+    /// Analyzes metrics history to produce a detailed performance profile including:
+    /// - Average metrics across all samples
+    /// - Peak (maximum) metrics observed
+    /// - Sample count and profiling duration
+    /// - AI-generated recommendations for optimization
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let profile = await monitor.generatePerformanceProfile(name: "Session 1")
+    /// print("Average CPU: \(profile.averageMetrics.cpuUsage)%")
+    /// for rec in profile.recommendations {
+    ///     print("💡 \(rec)")
+    /// }
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(n) where n = metrics history size
+    /// - Memory usage: O(1) - aggregates to single profile
+    /// - Thread-safe: Yes (actor isolated)
+    ///
+    /// - Parameter name: Custom name for the performance profile
+    /// - Returns: Performance profile with statistics and recommendations
+    /// - SeeAlso: `PerformanceProfile`, `exportPerformanceData()`
     public func generatePerformanceProfile(name: String = "Current Session") async -> PerformanceProfile {
         guard !metricsHistory.isEmpty else {
             let emptyMetrics = await getCurrentMetrics()
@@ -264,7 +364,27 @@ public actor PerformanceMonitor {
         )
     }
     
-    /// Export performance data
+    /// Export performance data as JSON for external analysis.
+    ///
+    /// Generates a complete performance profile and serializes it to JSON format
+    /// with ISO8601 dates and pretty-printing for readability.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// if let data = await monitor.exportPerformanceData() {
+    ///     try data.write(to: exportURL)
+    ///     print("Performance data exported")
+    /// }
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(n) for profile generation + O(m) for JSON encoding
+    /// - Memory usage: O(n) for JSON data buffer
+    /// - Thread-safe: Yes (actor isolated)
+    ///
+    /// - Returns: JSON-encoded performance profile data, or nil on encoding failure
+    /// - Note: Data is formatted with pretty-printing for human readability
+    /// - SeeAlso: `generatePerformanceProfile(name:)`, `PerformanceProfile`
     public func exportPerformanceData() async -> Data? {
         let profile = await generatePerformanceProfile(name: "Export - \(Date().formatted())")
         
@@ -286,7 +406,44 @@ public actor PerformanceMonitor {
         logger.info("📊 Performance history cleared")
     }
     
-    /// Check performance health
+    /// Check performance health across all monitored subsystems.
+    ///
+    /// Analyzes recent metrics (last 10 samples) to determine system health status
+    /// across CPU, memory, latency, and buffer pool performance. Returns health
+    /// levels and actionable recommendations.
+    ///
+    /// Health levels:
+    /// - Good: All systems operating within normal parameters
+    /// - Warning: Some metrics approaching thresholds
+    /// - Critical: One or more metrics exceeding acceptable ranges
+    /// - Unknown: Insufficient data for assessment
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let health = await monitor.checkPerformanceHealth()
+    /// switch health.overall {
+    /// case .good:
+    ///     print("✅ System healthy")
+    /// case .warning:
+    ///     print("⚠️ Performance issues detected")
+    ///     for rec in health.recommendations {
+    ///         print(rec)
+    ///     }
+    /// case .critical:
+    ///     print("🚨 Critical performance issues!")
+    /// case .unknown:
+    ///     print("❓ Insufficient data")
+    /// }
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1) - analyzes last 10 samples only
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (actor isolated)
+    ///
+    /// - Returns: Health status with subsystem breakdowns and recommendations
+    /// - Note: Requires at least 1 metric sample for meaningful results
+    /// - SeeAlso: `PerformanceHealthStatus`, `getCurrentMetrics()`
     public func checkPerformanceHealth() -> PerformanceHealthStatus {
         guard !metricsHistory.isEmpty else {
             return PerformanceHealthStatus(

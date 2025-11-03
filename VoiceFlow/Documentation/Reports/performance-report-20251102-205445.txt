@@ -1,0 +1,99 @@
+VoiceFlow Performance Analysis Report
+Generated: Sun Nov  2 20:54:45 GMT 2025
+================================================================================
+
+Build Time Analysis
+===================
+
+This may take a few minutes...
+
+Measuring build time...
+No installed swift toolchain is selected from either from a .swift-version file,
+or the default. You can try using one that's already installed with `swiftly use
+<toolchain version>` or install a new toolchain to use with `swiftly install
+--use <toolchain version>`.
+
+Total Build Time: 0 seconds
+
+Compilation Time Analysis
+=========================
+
+Checking for Xcode build logs...
+No recent Xcode build logs found
+
+Code Size Metrics
+=================
+
+Source Code:
+  Total lines of code: 12217
+  Total Swift files: 38
+  Average lines per file: 322
+
+Binary Size: Not available (no built binaries found)
+
+Module Size Distribution
+========================
+
+Module                                          Lines      Files
+--------------------------------------------------------------------------------
+ErrorHandling                                    1542          4
+Performance                                       941          2
+TranscriptionEngine                               314          1
+Validation                                        820          2
+Onboarding                                                     0
+Settings                                                       0
+Transcription                                                  0
+Export                                            137          2
+
+Performance Indicators
+======================
+
+Potential Performance Concerns:
+  Force unwraps (!): 87 (review for safety)
+  Memory management:
+    - weak references: 29
+    - unowned references: 0
+
+Swift Concurrency Adoption
+==========================
+
+Modern Concurrency:
+  async functions: 141
+  await calls: 262
+  Task usage: 79
+  Actor definitions: 2
+  @MainActor annotations: 55
+
+Legacy Concurrency:
+  DispatchQueue.async: 9
+  Completion handlers: 0
+
+Test Suite Performance
+======================
+
+Running test suite to measure performance...
+Test Execution:
+  Total tests: 0
+  Passed: 0
+  Failed: 0
+  Execution time: 0 seconds
+
+Optimization Recommendations
+============================
+
+Performance Optimization Priorities:
+
+  ✓ No major performance concerns detected
+
+Performance Optimization Score: 100/100
+
+General Recommendations:
+  • Use instruments to profile runtime performance
+  • Enable whole module optimization for release builds
+  • Consider lazy initialization for expensive resources
+  • Implement proper caching strategies
+  • Profile memory usage with Instruments
+  • Use Swift 6 concurrency features for better performance
+
+================================================================================
+Report generated: Sun Nov  2 20:54:46 GMT 2025

@@ -433,7 +433,14 @@ public final class SettingsStore: ObservableObject {
     public func get<T>(_ key: SettingsService.SettingsKey, type: T.Type) -> T {
         // This should only be used for cached values
         let value = UserDefaults.standard.object(forKey: key.rawValue) ?? key.defaultValue
-        return value as! T
+        guard let typedValue = value as? T else {
+            // Return default value if cast fails
+            if let defaultValue = key.defaultValue as? T {
+                return defaultValue
+            }
+            fatalError("Unable to cast setting value for key: \(key.rawValue)")
+        }
+        return typedValue
     }
     
     /// Set a setting asynchronously

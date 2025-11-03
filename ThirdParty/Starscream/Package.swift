@@ -26,14 +26,13 @@ let package = Package(
         name: "Starscream",
         products: [
             .library(name: "Starscream", targets: ["Starscream"])
-        ],
-        dependencies: [],
-        targets: [
-            .target(name: "Starscream",
-                    path: "Sources",
-                    exclude: ["Info.plist"],
-                    resources: [.copy("PrivacyInfo.xcprivacy")])
-        ]
+            ],
+            dependencies: [],
+            targets: [
+                .target(name: "Starscream",
+                        path: "Sources",
+                        resources: [.copy("PrivacyInfo.xcprivacy")])
+            ]
 )
 
 #if os(Linux)

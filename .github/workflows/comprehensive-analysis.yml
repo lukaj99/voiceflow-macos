@@ -1,0 +1,140 @@
+name: Comprehensive Analysis
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * 1" # Weekly on Monday 2 AM
+
+jobs:
+  performance-analysis:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: "6.2"
+
+      - name: Run Performance Analysis
+        run: |
+          swift Scripts/PerformanceAnalyzer.swift $GITHUB_WORKSPACE
+
+      - name: Upload Performance Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: performance_analysis/
+
+      - name: Check Performance Score
+        run: |
+          SCORE=$(grep "Performance Score:" performance_analysis/*.md | grep -o '[0-9.]*' | head -1)
+          echo "Performance Score: $SCORE/100"
+          if (( $(echo "$SCORE < 70" | bc -l) )); then
+            echo "::warning::Performance score below 70. Review report."
+          fi
+
+  memory-leak-detection:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: "6.2"
+
+      - name: Run Memory Leak Detection
+        run: |
+          swift Scripts/MemoryLeakDetector.swift $GITHUB_WORKSPACE
+
+      - name: Upload Memory Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: memory-leak-report
+          path: memory_leak_analysis/
+
+      - name: Check Memory Risk
+        run: |
+          RISK=$(grep "Risk Score:" memory_leak_analysis/*.md | grep -o '[0-9.]*' | head -1)
+          echo "Memory Risk Score: $RISK/100"
+          if (( $(echo "$RISK > 50" | bc -l) )); then
+            echo "::error::High memory leak risk detected. Review report."
+            exit 1
+          fi
+
+  security-analysis:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Run Security Analysis
+        run: |
+          python3 Scripts/security_analyzer.py
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: |
+            security_analysis.json
+            SECURITY_ANALYSIS_REPORT.md
+
+      - name: Check Security Score
+        run: |
+          CRITICAL=$(jq '.statistics.critical_count' security_analysis.json)
+          SECURITY_SCORE=$(jq '.security_score' security_analysis.json)
+
+          echo "Security Score: $SECURITY_SCORE/100"
+          echo "Critical Issues: $CRITICAL"
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::$CRITICAL critical security issues found!"
+            exit 1
+          fi
+
+          if [ "$SECURITY_SCORE" -lt 80 ]; then
+            echo "::warning::Security score below 80. Review report."
+          fi
+
+  aggregate-reports:
+    needs: [performance-analysis, memory-leak-detection, security-analysis]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Reports
+        uses: actions/download-artifact@v3
+
+      - name: Create Summary
+        run: |
+          echo "# VoiceFlow Analysis Summary" > summary.md
+          echo "" >> summary.md
+          echo "## Performance" >> summary.md
+          cat performance-report/*.md | head -30 >> summary.md
+          echo "" >> summary.md
+          echo "## Memory Leaks" >> summary.md
+          cat memory-leak-report/*.md | head -30 >> summary.md
+          echo "" >> summary.md
+          echo "## Security" >> summary.md
+          cat security-report/SECURITY_ANALYSIS_REPORT.md | head -30 >> summary.md
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('summary.md', 'utf8');
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: summary
+            });

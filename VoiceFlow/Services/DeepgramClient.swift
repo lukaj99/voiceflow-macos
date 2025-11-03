@@ -41,7 +41,30 @@ public class DeepgramClient: NSObject, ObservableObject {
     // MARK: - Model Configuration
     public var currentModel: DeepgramModel = .general
     
-    /// Update the model (requires reconnection if connected)
+    /// Update the Deepgram transcription model with automatic reconnection.
+    ///
+    /// Changes the active Deepgram Nova-3 model used for transcription. If currently
+    /// connected, automatically disconnects and reconnects with the new model configuration.
+    ///
+    /// Available models:
+    /// - General (Nova-3): Best for general conversation and business speech
+    /// - Medical (Nova-3): Optimized for medical terminology and clinical notes
+    /// - Enhanced (Nova-3): Enhanced accuracy for technical and specialized content
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// await client.setModel(.medical)
+    /// // Automatically reconnects with medical model
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1) + reconnection overhead if connected
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameter model: The Deepgram model to use for transcription
+    /// - Note: Triggers automatic reconnection if currently connected
+    /// - SeeAlso: `DeepgramModel`, `connect(apiKey:autoReconnect:)`
     public func setModel(_ model: DeepgramModel) {
         guard model != currentModel else { return }
         
@@ -91,7 +114,36 @@ public class DeepgramClient: NSObject, ObservableObject {
     }
     
     // MARK: - Public Methods
-    
+
+    /// Connect to Deepgram's real-time transcription service with enhanced reliability.
+    ///
+    /// Establishes a WebSocket connection to Deepgram's API with automatic reconnection
+    /// and exponential backoff for maximum reliability. Connection includes:
+    /// - Authentication via API key
+    /// - Configurable transcription parameters (language, sample rate, etc.)
+    /// - Health monitoring and automatic recovery
+    /// - Connection timeout protection (15s)
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let client = DeepgramClient()
+    /// client.delegate = self
+    /// client.connect(apiKey: "YOUR_API_KEY", autoReconnect: true)
+    /// // Connection established, ready to stream audio
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1) for initialization
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    /// - Connection timeout: 15 seconds
+    ///
+    /// - Parameters:
+    ///   - apiKey: Deepgram API key for authentication
+    ///   - autoReconnect: Enable automatic reconnection on failure (default: true)
+    ///
+    /// - Note: Uses exponential backoff for reconnection attempts (max 10 attempts)
+    /// - SeeAlso: `disconnect()`, `DeepgramClientDelegate`, `connectionState`
     public func connect(apiKey: String, autoReconnect: Bool = true) {
         print("🌐 Connecting to Deepgram with enhanced reliability...")
         
@@ -143,6 +195,28 @@ public class DeepgramClient: NSObject, ObservableObject {
         }
     }
     
+    /// Gracefully disconnect from Deepgram service.
+    ///
+    /// Performs a clean shutdown of the WebSocket connection:
+    /// - Sends close message to server
+    /// - Cancels pending reconnection attempts
+    /// - Stops health monitoring
+    /// - Resets connection state
+    /// - Cleans up resources
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// client.disconnect()
+    /// // Connection closed gracefully
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Note: Safe to call multiple times; subsequent calls are no-ops
+    /// - SeeAlso: `connect(apiKey:autoReconnect:)`, `forceReconnect()`
     public func disconnect() {
         print("🌐 Gracefully disconnecting from Deepgram...")
         
@@ -175,6 +249,29 @@ public class DeepgramClient: NSObject, ObservableObject {
         print("✅ Gracefully disconnected from Deepgram")
     }
     
+    /// Send audio data to Deepgram for real-time transcription.
+    ///
+    /// Streams audio data to the WebSocket connection for processing. Audio should be:
+    /// - Format: Linear PCM (linear16)
+    /// - Sample rate: 16000 Hz
+    /// - Channels: 1 (mono)
+    /// - Encoding: 16-bit
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let audioBuffer: Data = // ... captured audio
+    /// client.sendAudioData(audioBuffer)
+    /// // Audio sent for transcription
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1) for queuing
+    /// - Memory usage: O(n) where n = data size
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameter data: Raw audio data in the correct format
+    /// - Note: Silently fails if not connected; check isConnected before sending
+    /// - SeeAlso: `isConnected`, `DeepgramClientDelegate`
     public func sendAudioData(_ data: Data) {
         guard isConnected, let webSocket = webSocket else {
             print("⚠️ Cannot send audio: not connected")
@@ -186,7 +283,31 @@ public class DeepgramClient: NSObject, ObservableObject {
         print("📡 Sent \(data.count) bytes of audio data")
     }
     
-    /// Get connection diagnostics for monitoring
+    /// Get connection diagnostics for monitoring and debugging.
+    ///
+    /// Returns comprehensive connection health information including:
+    /// - Current connection state
+    /// - Total connection attempts
+    /// - Current retry attempt number
+    /// - Message and error counts
+    /// - Network latency
+    /// - Connection uptime
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let diagnostics = client.getConnectionDiagnostics()
+    /// print("State: \(diagnostics.state)")
+    /// print("Latency: \(diagnostics.latency)ms")
+    /// print("Healthy: \(diagnostics.isHealthy)")
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Returns: Connection diagnostics snapshot
+    /// - SeeAlso: `ConnectionDiagnostics`, `connectionState`
     public func getConnectionDiagnostics() -> ConnectionDiagnostics {
         return ConnectionDiagnostics(
             state: connectionState,
@@ -199,7 +320,28 @@ public class DeepgramClient: NSObject, ObservableObject {
         )
     }
     
-    /// Force reconnection (useful for testing or manual recovery)
+    /// Force immediate reconnection to Deepgram service.
+    ///
+    /// Manually triggers a reconnection cycle, bypassing normal retry logic.
+    /// Useful for:
+    /// - Testing connection recovery
+    /// - Manual error recovery
+    /// - Switching network interfaces
+    /// - Recovering from stale connections
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// // Network changed, force reconnect
+    /// client.forceReconnect()
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Note: Resets retry counter to allow fresh connection attempt
+    /// - SeeAlso: `connect(apiKey:autoReconnect:)`, `disconnect()`
     public func forceReconnect() {
         guard let apiKey = apiKey else {
             print("⚠️ Cannot reconnect: no API key stored")
@@ -235,7 +377,9 @@ public class DeepgramClient: NSObject, ObservableObject {
     
     /// Build WebSocket URL with optimized parameters
     private func buildWebSocketURL() -> URL? {
-        var urlComponents = URLComponents(string: "wss://api.deepgram.com/v1/listen")!
+        guard var urlComponents = URLComponents(string: "wss://api.deepgram.com/v1/listen") else {
+            return nil
+        }
         urlComponents.queryItems = [
             URLQueryItem(name: "model", value: currentModel.rawValue),
             URLQueryItem(name: "language", value: "en-US"),

@@ -1,0 +1,169 @@
+# SwiftFormat configuration for VoiceFlow
+# Version: 6.0
+
+# Swift Version
+--swiftversion 6.0
+
+# Indentation
+--indent 4
+--indentcase false
+--indentstrings false
+--tabwidth 4
+
+# Line Length
+--maxwidth 120
+
+# Wrapping
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--wrapreturntype preserve
+--wrapternary default
+--wraptypealiases preserve
+
+# Parentheses
+--closingparen same-line
+
+# Attributes
+--funcattributes prev-line
+--typeattributes prev-line
+--varattributes same-line
+
+# Access Control
+--extensionacl on-declarations
+
+# Pattern Let
+--patternlet inline
+
+# Braces
+--allman false
+--elseposition same-line
+--guardelse same-line
+
+# Arguments
+--stripunusedargs closure-only
+--unusedarguments closure-only
+
+# Self
+--self insert
+--selfrequired 
+
+# Headers
+--header strip
+
+# Acronyms (maintain consistency)
+--acronyms ID,URL,UUID,API,LLM,UI
+
+# Spaces
+--nospaceoperators
+--ranges no-space
+--trimwhitespace always
+
+# Semicolons
+--semicolons never
+
+# Commas
+--commas always
+
+# Comments
+--comments indent
+--strips trailing
+
+# Organization
+--organizetypes actor,class,enum,struct,extension
+--lifecycle 
+--sortedimports alpha
+--importgrouping alpha
+
+# Numbers
+--binarygrouping 4,8
+--decimalgrouping 3,6
+--exponentcase lowercase
+--exponentgrouping disabled
+--fractiongrouping disabled
+--hexgrouping 4,8
+--hexliteralcase uppercase
+--octalgrouping 4,8
+
+# Misc
+--conflictmarkers reject
+--fragment false
+--ifdef no-indent
+--indent 4
+--insertlines disabled
+--linebreaks lf
+--nevertrailing 
+--nowrapoperators
+--operatorfunc spaced
+--redundanttype inferred
+--smarttabs enabled
+
+# Rules to enable
+--enable blankLinesBetweenScopes
+--enable consecutiveBlankLines
+--enable consecutiveSpaces
+--enable duplicateImports
+--enable elseOnSameLine
+--enable emptyBraces
+--enable enumNamespaces
+--enable extensionAccessControl
+--enable hoistPatternLet
+--enable indent
+--enable leadingDelimiters
+--enable linebreakAtEndOfFile
+--enable numberFormatting
+--enable preferKeyPath
+--enable redundantBackticks
+--enable redundantBreak
+--enable redundantExtensionACL
+--enable redundantFileprivate
+--enable redundantGet
+--enable redundantInit
+--enable redundantLet
+--enable redundantLetError
+--enable redundantNilInit
+--enable redundantObjc
+--enable redundantParens
+--enable redundantPattern
+--enable redundantRawValues
+--enable redundantReturn
+--enable redundantSelf
+--enable redundantType
+--enable redundantVoidReturnType
+--enable semicolons
+--enable sortedImports
+--enable spaceAroundBraces
+--enable spaceAroundBrackets
+--enable spaceAroundComments
+--enable spaceAroundGenerics
+--enable spaceAroundOperators
+--enable spaceAroundParens
+--enable spaceInsideBraces
+--enable spaceInsideBrackets
+--enable spaceInsideComments
+--enable spaceInsideGenerics
+--enable spaceInsideParens
+--enable strongOutlets
+--enable strongifiedSelf
+--enable todos
+--enable trailingClosures
+--enable trailingCommas
+--enable trailingSpace
+--enable typeSugar
+--enable unusedArguments
+--enable void
+--enable wrapArguments
+--enable wrapAttributes
+--enable wrapMultilineStatementBraces
+--enable yodaConditions
+
+# Rules to disable
+--disable andOperator
+--disable blankLinesAtEndOfScope
+--disable blankLinesAtStartOfScope
+
+# Excluded paths
+--exclude .build
+--exclude Package.swift
+--exclude Packages
+--exclude .swiftpm

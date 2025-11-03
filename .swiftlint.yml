@@ -1,0 +1,29 @@
+# VoiceFlow SwiftLint Configuration
+included:
+  - VoiceFlow/
+excluded:
+  - VoiceFlow/ThirdParty/
+  - .build/
+  - VoiceFlow/Documentation/
+
+opt_in_rules:
+  - force_unwrapping
+  - force_cast
+  - empty_count
+
+line_length:
+  warning: 120
+  error: 140
+
+function_body_length:
+  warning: 60
+  error: 100
+
+file_length:
+  warning: 600
+  error: 800
+
+force_unwrapping:
+  severity: error
+
+reporter: "xcode"

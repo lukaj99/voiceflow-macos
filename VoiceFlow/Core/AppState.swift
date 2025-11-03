@@ -123,8 +123,30 @@ public final class AppState {
     }
     
     // MARK: - State Management
-    
-    /// Start a new transcription session
+
+    /// Start a new transcription session with automatic state initialization.
+    ///
+    /// Creates a new transcription session with current settings and prepares the app
+    /// for audio recording and real-time transcription. This method automatically:
+    /// - Creates a new session with unique identifier
+    /// - Initializes recording and processing flags
+    /// - Clears previous error messages
+    /// - Resets transcription text buffer
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let appState = AppState.shared
+    /// appState.startTranscriptionSession()
+    /// // Recording is now active, ready to receive audio
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1) - creates one session object
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Note: This method does not start actual audio capture. Use AudioManager to start recording.
+    /// - SeeAlso: `stopTranscriptionSession()`, `TranscriptionSession`
     public func startTranscriptionSession() {
         let session = TranscriptionSession(
             id: UUID(),
@@ -141,7 +163,31 @@ public final class AppState {
         print("🎯 Started new transcription session: \(session.id)")
     }
     
-    /// Stop the current transcription session
+    /// Stop the current transcription session and save final results.
+    ///
+    /// Finalizes the active transcription session by:
+    /// - Recording end time and duration
+    /// - Calculating final word count and confidence
+    /// - Adding session to recent history (maintains last 50)
+    /// - Resetting all recording state flags
+    ///
+    /// The completed session is automatically added to `recentSessions` for history
+    /// tracking and export capabilities.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let appState = AppState.shared
+    /// appState.stopTranscriptionSession()
+    /// // Session is saved, recording flags cleared
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1) with O(n) for history trimming if > 50 sessions
+    /// - Memory usage: O(1) - updates existing state
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Note: Does not stop actual audio capture. Use AudioManager.stopRecording()
+    /// - SeeAlso: `startTranscriptionSession()`, `recentSessions`
     public func stopTranscriptionSession() {
         guard var session = currentSession else { return }
         
@@ -174,7 +220,34 @@ public final class AppState {
         print("🎯 Stopped transcription session: \(session.id)")
     }
     
-    /// Update transcription text with new content
+    /// Update transcription text with new content from the recognition engine.
+    ///
+    /// Processes incoming transcription results and updates the session state.
+    /// Handles both interim (partial) and final transcription results.
+    ///
+    /// When `isFinal` is true, the text is appended to the cumulative transcription
+    /// with automatic spacing. Interim results are not added to the transcript.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// // Update with final transcribed text
+    /// appState.updateTranscription("Hello world", isFinal: true)
+    ///
+    /// // Update with interim (partial) results
+    /// appState.updateTranscription("He...", isFinal: false)
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(n) where n is text length for word counting
+    /// - Memory usage: O(1) - updates existing string
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameters:
+    ///   - text: The transcribed text to add
+    ///   - isFinal: Whether this is a final (vs interim) transcription result
+    ///
+    /// - Note: Only final text is permanently added to the transcript
+    /// - SeeAlso: `clearTranscription()`, `currentSession`
     public func updateTranscription(_ text: String, isFinal: Bool = false) {
         if isFinal {
             // Add final text to existing transcription
@@ -204,14 +277,48 @@ public final class AppState {
         }
     }
     
-    /// Clear current transcription
+    /// Clear current transcription text and error messages.
+    ///
+    /// Resets the transcription text buffer and clears any displayed errors.
+    /// Does not affect the current session or recording state.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// appState.clearTranscription()
+    /// // Transcription text is now empty, ready for new content
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1) - deallocates string memory
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Note: This does not end the transcription session
+    /// - SeeAlso: `updateTranscription(_:isFinal:)`, `stopTranscriptionSession()`
     public func clearTranscription() {
         transcriptionText = ""
         errorMessage = nil
         print("🎯 Transcription cleared")
     }
     
-    /// Update connection status
+    /// Update connection status to transcription service.
+    ///
+    /// Updates the WebSocket connection state and automatically clears
+    /// error messages when transitioning to connected state.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// appState.setConnectionStatus(.connected)
+    /// // UI will show green connected indicator
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameter status: The new connection state
+    /// - SeeAlso: `ConnectionStatus`, `connectionStatus`
     public func setConnectionStatus(_ status: ConnectionStatus) {
         connectionStatus = status
         
@@ -220,35 +327,130 @@ public final class AppState {
         }
     }
     
-    /// Set error message
+    /// Set error message to display to the user.
+    ///
+    /// Updates the current error message state. Pass nil to clear the error.
+    /// Error messages are automatically logged to console for debugging.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// appState.setError("Failed to connect to transcription service")
+    /// // Error banner will appear in UI
+    ///
+    /// appState.setError(nil)
+    /// // Error banner is cleared
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameter message: The error message to display, or nil to clear
+    /// - SeeAlso: `errorMessage`, `setConnectionStatus(_:)`
     public func setError(_ message: String?) {
         errorMessage = message
-        if message != nil {
-            print("🎯 Error set: \(message!)")
+        if let errorMessage = message {
+            print("🎯 Error set: \(errorMessage)")
         }
     }
     
-    /// Update audio level
+    /// Update audio input level for visual feedback.
+    ///
+    /// Sets the current audio input level for visualization in the UI.
+    /// Values are automatically clamped to the valid range [0.0, 1.0].
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// appState.updateAudioLevel(0.75)
+    /// // Audio level indicator shows 75% volume
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameter level: Audio level between 0.0 (silent) and 1.0 (maximum)
+    /// - Note: Called frequently during recording, should be lightweight
+    /// - SeeAlso: `audioLevel`, `isRecording`
     public func updateAudioLevel(_ level: Float) {
         audioLevel = max(0.0, min(1.0, level))
     }
     
-    /// Update metrics
+    /// Update performance metrics for monitoring and diagnostics.
+    ///
+    /// Records current transcription performance metrics including latency,
+    /// confidence, and processing time. These metrics are used for performance
+    /// monitoring and quality analysis.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// let metrics = TranscriptionMetrics(
+    ///     latency: 0.150,
+    ///     confidence: 0.95,
+    ///     wordCount: 42,
+    ///     processingTime: 0.025
+    /// )
+    /// appState.updateMetrics(metrics)
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Parameter metrics: Current performance metrics snapshot
+    /// - SeeAlso: `TranscriptionMetrics`, `currentMetrics`, `networkLatency`
     public func updateMetrics(_ metrics: TranscriptionMetrics) {
         currentMetrics = metrics
         networkLatency = metrics.latency
     }
     
     // MARK: - LLM State Management
-    
-    /// Enable LLM post-processing
+
+    /// Enable LLM post-processing for transcription enhancement.
+    ///
+    /// Activates LLM-powered post-processing which applies grammar correction,
+    /// punctuation, and word substitution to transcription results.
+    /// Automatically clears any previous processing errors.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// appState.enableLLMPostProcessing()
+    /// // Future transcriptions will be enhanced by LLM
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Note: Requires LLM API keys to be configured in settings
+    /// - SeeAlso: `disableLLMPostProcessing()`, `llmPostProcessingEnabled`
     public func enableLLMPostProcessing() {
         llmPostProcessingEnabled = true
         llmProcessingError = nil
         print("🤖 LLM post-processing enabled")
     }
     
-    /// Disable LLM post-processing
+    /// Disable LLM post-processing and reset processing state.
+    ///
+    /// Deactivates LLM post-processing and resets all related state including
+    /// processing progress, flags, and error messages.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// appState.disableLLMPostProcessing()
+    /// // LLM processing is now disabled, transcriptions appear raw
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - SeeAlso: `enableLLMPostProcessing()`, `llmPostProcessingEnabled`
     public func disableLLMPostProcessing() {
         llmPostProcessingEnabled = false
         isLLMProcessing = false
@@ -270,10 +472,10 @@ public final class AppState {
     /// Set LLM processing error
     public func setLLMProcessingError(_ error: String?) {
         llmProcessingError = error
-        if error != nil {
+        if let errorMessage = error {
             isLLMProcessing = false
             llmProcessingProgress = 0.0
-            print("🤖 LLM processing error: \(error!)")
+            print("🤖 LLM processing error: \(errorMessage)")
         }
     }
     
@@ -329,7 +531,25 @@ public final class AppState {
         print("🎯 Initial state loaded")
     }
     
-    /// Save current state to storage
+    /// Save current state to persistent storage.
+    ///
+    /// Persists user preferences including theme, language, and onboarding status
+    /// to UserDefaults for retrieval across app launches.
+    ///
+    /// ## Usage Example
+    /// ```swift
+    /// appState.appTheme = .dark
+    /// appState.saveState()
+    /// // Theme preference is now persisted
+    /// ```
+    ///
+    /// ## Performance Characteristics
+    /// - Time complexity: O(1)
+    /// - Memory usage: O(1)
+    /// - Thread-safe: Yes (MainActor isolated)
+    ///
+    /// - Note: Called automatically on important state changes
+    /// - SeeAlso: `loadInitialState()`, `UserDefaults`
     public func saveState() {
         UserDefaults.standard.set(appTheme.rawValue, forKey: "AppTheme")
         UserDefaults.standard.set(selectedLanguage.rawValue, forKey: "SelectedLanguage")

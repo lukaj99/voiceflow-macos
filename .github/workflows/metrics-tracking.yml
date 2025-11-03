@@ -1,0 +1,119 @@
+name: Code Metrics Tracking
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly on Mondays at 9 AM
+    - cron: '0 9 * * 1'
+
+jobs:
+  collect-metrics:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for accurate metrics
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Generate Metrics
+      run: |
+        python3 generate_metrics_export.py
+        echo "Metrics generated successfully"
+    
+    - name: Upload Metrics as Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-metrics-${{ github.run_number }}
+        path: |
+          metrics_export.json
+          metrics_export.csv
+        retention-days: 90
+    
+    - name: Comment PR with Metrics
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const metrics = JSON.parse(fs.readFileSync('metrics_export.json', 'utf8'));
+          
+          const comment = `## 📊 Code Metrics Report
+          
+          | Metric | Value |
+          |--------|-------|
+          | Lines of Code | ${metrics.basic_metrics.lines_of_code.toLocaleString()} |
+          | Test Coverage | ${metrics.quality_scores.test_coverage_estimate}% |
+          | Documentation | ${metrics.documentation_metrics.coverage_percentage}% |
+          | Code Health | ${metrics.quality_scores.code_health_score}/100 |
+          | Functions | ${metrics.complexity_metrics.functions} |
+          
+          ${metrics.recommendations.critical.length > 0 ? '### ⚠️ Critical Issues\n' + metrics.recommendations.critical.map(r => `- ${r}`).join('\n') : ''}
+          ${metrics.recommendations.high.length > 0 ? '### 🔸 High Priority\n' + metrics.recommendations.high.map(r => `- ${r}`).join('\n') : ''}
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+    
+    - name: Store Metrics in Branch
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Create metrics branch if it doesn't exist
+        git checkout -B metrics-history
+        
+        # Create metrics directory with timestamp
+        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+        mkdir -p metrics/$TIMESTAMP
+        
+        # Copy metrics files
+        cp metrics_export.json metrics/$TIMESTAMP/
+        cp metrics_export.csv metrics/$TIMESTAMP/
+        
+        # Commit and push
+        git add metrics/
+        git commit -m "Update metrics: $TIMESTAMP"
+        git push origin metrics-history --force-with-lease
+    
+    - name: Check Quality Gates
+      run: |
+        python3 -c "
+        import json
+        import sys
+        
+        with open('metrics_export.json', 'r') as f:
+            metrics = json.load(f)
+        
+        # Define quality gates
+        gates = {
+            'test_coverage': {'min': 20, 'actual': metrics['quality_scores']['test_coverage_estimate']},
+            'doc_coverage': {'min': 5, 'actual': metrics['documentation_metrics']['coverage_percentage']},
+            'health_score': {'min': 30, 'actual': metrics['quality_scores']['code_health_score']}
+        }
+        
+        failed = []
+        for gate, values in gates.items():
+            if values['actual'] < values['min']:
+                failed.append(f'{gate}: {values['actual']} < {values['min']}')
+        
+        if failed:
+            print('❌ Quality gates failed:')
+            for f in failed:
+                print(f'  - {f}')
+            sys.exit(1)
+        else:
+            print('✅ All quality gates passed')
+        "
