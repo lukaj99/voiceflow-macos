@@ -1,10 +1,10 @@
 import SwiftUI
 import Combine
 
+// MARK: - SwiftUI View Modifier
+
 /// SwiftUI integration extensions for validation framework
 /// Note: Common validation rules are defined in ValidationFramework.swift
-
-// MARK: - SwiftUI View Modifier
 
 /// SwiftUI view modifier for real-time input validation
 public struct ValidationModifier: ViewModifier {
@@ -144,7 +144,9 @@ public struct ValidatedTextField: View {
                         .scaleEffect(0.7)
                 } else if !text.isEmpty {
                     Image(systemName: validationState.isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundColor(validationState.isValid ? .green : .red)
+                        .foregroundColor(
+                            validationState.isValid ? .green : .red
+                        )
                 }
             }
 
@@ -234,7 +236,10 @@ extension ValidationFramework.ValidationResult {
 
 extension String {
     /// Quick validation using common rules
-    public func validate(with rule: ValidationFramework.ValidationRule, using validator: ValidationFramework) async -> ValidationFramework.ValidationResult {
+    public func validate(
+        with rule: ValidationFramework.ValidationRule,
+        using validator: ValidationFramework
+    ) async -> ValidationFramework.ValidationResult {
         return await validator.validate(self, rule: rule)
     }
 
@@ -309,7 +314,10 @@ extension ValidationFramework {
         }
 
         let stats = await getValidationStatistics()
-        print("📊 Validation stats - Success: \(stats.successCount), Failures: \(stats.failureCount), Threats: \(stats.securityThreatCount)")
+        print(
+            "📊 Validation stats - Success: \(stats.successCount), " +
+            "Failures: \(stats.failureCount), Threats: \(stats.securityThreatCount)"
+        )
     }
 }
 #endif

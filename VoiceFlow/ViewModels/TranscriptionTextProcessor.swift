@@ -32,7 +32,12 @@ public actor TranscriptionTextProcessor {
         public let confidence: Double
         public let suggestedModel: DeepgramModel?
 
-        public init(text: String, detectedDomain: TextDomain, confidence: Double, suggestedModel: DeepgramModel? = nil) {
+        public init(
+            text: String,
+            detectedDomain: TextDomain,
+            confidence: Double,
+            suggestedModel: DeepgramModel? = nil
+        ) {
             self.text = text
             self.detectedDomain = detectedDomain
             self.confidence = confidence

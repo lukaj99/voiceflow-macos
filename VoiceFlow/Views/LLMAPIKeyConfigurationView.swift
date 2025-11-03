@@ -186,10 +186,13 @@ public struct LLMAPIKeyConfigurationView: View {
                         validateOpenAIInput(newValue)
                     }
 
-                    Button(action: { isShowingOpenAIKey.toggle() }) {
-                        Image(systemName: isShowingOpenAIKey ? "eye.slash" : "eye")
-                            .foregroundColor(.secondary)
-                    }
+                    Button(
+                        action: { isShowingOpenAIKey.toggle() },
+                        label: {
+                            Image(systemName: isShowingOpenAIKey ? "eye.slash" : "eye")
+                                .foregroundColor(.secondary)
+                        }
+                    )
                 }
 
                 if let error = openAIValidationError {
@@ -203,17 +206,20 @@ public struct LLMAPIKeyConfigurationView: View {
                     .foregroundColor(.secondary)
             }
 
-            Button(action: { configureOpenAIKey() }) {
-                if isConfiguring && selectedProvider == .openAI {
+            Button(
+                action: { configureOpenAIKey() },
+                label: {
+                    if isConfiguring && selectedProvider == .openAI {
                     HStack {
                         ProgressView()
                             .scaleEffect(0.8)
                         Text("Configuring...")
                     }
-                } else {
-                    Text("Configure OpenAI API Key")
+                    } else {
+                        Text("Configure OpenAI API Key")
+                    }
                 }
-            }
+            )
             .buttonStyle(.borderedProminent)
             .disabled(!isValidOpenAIInput || isConfiguring)
 
@@ -252,10 +258,13 @@ public struct LLMAPIKeyConfigurationView: View {
                         validateClaudeInput(newValue)
                     }
 
-                    Button(action: { isShowingClaudeKey.toggle() }) {
-                        Image(systemName: isShowingClaudeKey ? "eye.slash" : "eye")
-                            .foregroundColor(.secondary)
-                    }
+                    Button(
+                        action: { isShowingClaudeKey.toggle() },
+                        label: {
+                            Image(systemName: isShowingClaudeKey ? "eye.slash" : "eye")
+                                .foregroundColor(.secondary)
+                        }
+                    )
                 }
 
                 if let error = claudeValidationError {
@@ -269,17 +278,20 @@ public struct LLMAPIKeyConfigurationView: View {
                     .foregroundColor(.secondary)
             }
 
-            Button(action: { configureClaudeKey() }) {
-                if isConfiguring && selectedProvider == .claude {
+            Button(
+                action: { configureClaudeKey() },
+                label: {
+                    if isConfiguring && selectedProvider == .claude {
                     HStack {
                         ProgressView()
                             .scaleEffect(0.8)
                         Text("Configuring...")
                     }
-                } else {
-                    Text("Configure Claude API Key")
+                    } else {
+                        Text("Configure Claude API Key")
+                    }
                 }
-            }
+            )
             .buttonStyle(.borderedProminent)
             .disabled(!isValidClaudeInput || isConfiguring)
 

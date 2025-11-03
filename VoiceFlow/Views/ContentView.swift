@@ -56,7 +56,10 @@ public struct ContentView: View {
                 // LLM Processing Status
                 if AppState.shared.llmPostProcessingEnabled {
                     HStack {
-                        Image(systemName: AppState.shared.hasLLMProvidersConfigured ? "brain.head.profile.fill" : "brain.head.profile")
+                        Image(
+                            systemName: AppState.shared.hasLLMProvidersConfigured ?
+                                "brain.head.profile.fill" : "brain.head.profile"
+                        )
                             .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .purple : .gray)
 
                         if AppState.shared.isLLMProcessing {
@@ -88,20 +91,23 @@ public struct ContentView: View {
                     .disabled(viewModel.isRecording)
 
                     // Start/Stop Button
-                    Button(action: {
-                        Task {
-                            if viewModel.isRecording {
-                                viewModel.stopRecording()
-                            } else {
-                                await viewModel.startRecording()
+                    Button(
+                        action: {
+                            Task {
+                                if viewModel.isRecording {
+                                    viewModel.stopRecording()
+                                } else {
+                                    await viewModel.startRecording()
+                                }
+                            }
+                        },
+                        label: {
+                            HStack {
+                                Image(systemName: viewModel.isRecording ? "stop.circle.fill" : "record.circle")
+                                Text(viewModel.isRecording ? "Stop" : "Start")
                             }
                         }
-                    }) {
-                        HStack {
-                            Image(systemName: viewModel.isRecording ? "stop.circle.fill" : "record.circle")
-                            Text(viewModel.isRecording ? "Stop" : "Start")
-                        }
-                    }
+                    )
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .disabled(!viewModel.isConfigured)
@@ -169,7 +175,10 @@ public struct ContentView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 ScrollView {
-                    Text(viewModel.transcriptionText.isEmpty ? "Transcribed text will appear here..." : viewModel.transcriptionText)
+                    Text(
+                        viewModel.transcriptionText.isEmpty ?
+                            "Transcribed text will appear here..." : viewModel.transcriptionText
+                    )
                         .font(.body)
                         .foregroundColor(viewModel.transcriptionText.isEmpty ? .secondary : .primary)
                         .textSelection(.enabled)

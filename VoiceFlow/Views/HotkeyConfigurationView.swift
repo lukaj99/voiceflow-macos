@@ -109,7 +109,10 @@ public struct HotkeyConfigurationView: View {
                 // Configuration Status
                 if let message = configurationMessage {
                     HStack {
-                        Image(systemName: message.contains("✓") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        Image(
+                            systemName: message.contains("✓") ?
+                                "checkmark.circle.fill" : "exclamationmark.triangle.fill"
+                        )
                             .foregroundColor(message.contains("✓") ? .green : .orange)
 
                         Text(message)
@@ -249,34 +252,37 @@ struct HotkeyRecorderView: View {
     @State private var localEventMonitor: Any?
 
     var body: some View {
-        Button(action: {
-            if isRecording {
-                stopRecording()
-            } else {
-                startRecording()
-            }
-        }) {
-            HStack {
-                Text(isRecording ? "Press keys..." : displayText)
-                    .font(.system(.body, design: .monospaced))
-                    .foregroundColor(isRecording ? .orange : .primary)
+        Button(
+            action: {
+                if isRecording {
+                    stopRecording()
+                } else {
+                    startRecording()
+                }
+            },
+            label: {
+                HStack {
+                    Text(isRecording ? "Press keys..." : displayText)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(isRecording ? .orange : .primary)
 
-                Spacer()
+                    Spacer()
 
-                Image(systemName: isRecording ? "record.circle.fill" : "keyboard")
-                    .foregroundColor(isRecording ? .red : .secondary)
+                    Image(systemName: isRecording ? "record.circle.fill" : "keyboard")
+                        .foregroundColor(isRecording ? .red : .secondary)
+                }
+                .padding()
+                .frame(width: 200)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(isRecording ? Color.orange.opacity(0.1) : Color(.controlBackgroundColor))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(isRecording ? Color.orange : Color.gray.opacity(0.3), lineWidth: 1)
+                        )
+                )
             }
-            .padding()
-            .frame(width: 200)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isRecording ? Color.orange.opacity(0.1) : Color(.controlBackgroundColor))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isRecording ? Color.orange : Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
+        )
         .buttonStyle(.plain)
         .onDisappear {
             stopRecording()
