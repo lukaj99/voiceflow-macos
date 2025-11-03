@@ -363,8 +363,8 @@ final class ExportManagerTests: XCTestCase {
         // Then
         XCTAssertTrue(result.success)
         let content = try String(contentsOf: fileURL, encoding: .utf8)
-        XCTAssertTrue(content?.contains("你好世界") ?? false)
-        XCTAssertTrue(content?.contains("🎉") ?? false)
+        XCTAssertTrue(content.contains("你好世界"))
+        XCTAssertTrue(content.contains("🎉"))
     }
 
     // MARK: - Configuration Tests

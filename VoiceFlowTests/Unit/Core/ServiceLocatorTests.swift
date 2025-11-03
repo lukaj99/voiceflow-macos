@@ -84,9 +84,12 @@ struct DependentModule: ServiceModule {
     }
 
     func registerServices(in locator: ServiceLocator) async throws {
+        // Resolve dependency outside factory closure since factory must be synchronous
+        let testService = try await locator.resolve(TestServiceProtocol.self)
+
         try await locator.register(DependentServiceProtocol.self) {
-            let dep = try await locator.resolve(TestServiceProtocol.self)
-            return DependentService(dependency: dep)
+            // Factory is synchronous, but captures resolved dependency
+            return DependentService(dependency: testService)
         }
     }
 }
@@ -212,9 +215,12 @@ final class ServiceLocatorTests: XCTestCase {
             TestService()
         }
 
+        // Resolve dependency outside factory closure since factory must be synchronous
+        let testService = try await sut.resolve(TestServiceProtocol.self)
+
         try await sut.register(DependentServiceProtocol.self) {
-            let dep = try await self.sut.resolve(TestServiceProtocol.self)
-            return DependentService(dependency: dep)
+            // Factory is synchronous, but captures resolved dependency
+            return DependentService(dependency: testService)
         }
 
         // When
@@ -408,12 +414,15 @@ final class ServiceLocatorTests: XCTestCase {
             TestService()
         }
 
+        // Capture sut in local variable for Sendable closure
+        let locator = sut!
+
         // When - concurrent resolutions
         await withTaskGroup(of: String.self) { group in
             for _ in 0..<10 {
-                group.addTask {
+                group.addTask { @Sendable in
                     do {
-                        let service = try await self.sut.resolve(TestServiceProtocol.self)
+                        let service = try await locator.resolve(TestServiceProtocol.self)
                         return service.doSomething()
                     } catch {
                         return "error"

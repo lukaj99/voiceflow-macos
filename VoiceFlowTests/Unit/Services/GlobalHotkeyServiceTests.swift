@@ -219,7 +219,9 @@ final class GlobalHotkeyServiceTests: XCTestCase {
 
     func testSetFloatingWidget() async {
         // Given
-        let mockWidget = MockFloatingWidget()
+        let mockAppState = AppState()
+        let mockViewModel = SimpleTranscriptionViewModel(appState: mockAppState)
+        let mockWidget = MockFloatingWidget(viewModel: mockViewModel)
 
         // When
         hotkeyService.setFloatingWidget(mockWidget)
@@ -296,6 +298,10 @@ private class MockFloatingWidget: FloatingMicrophoneWidget {
     var toggleRecordingCalled = false
     var showCalled = false
     var startRecordingCalled = false
+
+    override init(viewModel: SimpleTranscriptionViewModel) {
+        super.init(viewModel: viewModel)
+    }
 
     override func toggle() {
         toggleCalled = true
