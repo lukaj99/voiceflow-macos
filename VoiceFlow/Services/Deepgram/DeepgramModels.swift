@@ -53,29 +53,32 @@ public enum ConnectionState: String, CaseIterable, Codable, Sendable {
 
 public struct DeepgramResponse: Codable {
     public let type: String?
+    // swiftlint:disable:next identifier_name
     public let channel_index: [Int]?
     public let duration: Double?
     public let start: Double?
+    // swiftlint:disable:next identifier_name
     public let is_final: Bool?
+    // swiftlint:disable:next identifier_name
     public let speech_final: Bool?
-    public let channel: Channel?
+    public let channel: DeepgramChannel?
+}
 
-    public struct Channel: Codable {
-        public let alternatives: [Alternative]?
+public struct DeepgramChannel: Codable {
+    public let alternatives: [DeepgramAlternative]?
+}
 
-        public struct Alternative: Codable {
-            public let transcript: String?
-            public let confidence: Double?
-            public let words: [Word]?
+public struct DeepgramAlternative: Codable {
+    public let transcript: String?
+    public let confidence: Double?
+    public let words: [DeepgramWord]?
+}
 
-            public struct Word: Codable {
-                public let word: String?
-                public let start: Double?
-                public let end: Double?
-                public let confidence: Double?
-            }
-        }
-    }
+public struct DeepgramWord: Codable {
+    public let word: String?
+    public let start: Double?
+    public let end: Double?
+    public let confidence: Double?
 }
 
 // MARK: - Connection Diagnostics
@@ -101,6 +104,7 @@ public struct ConnectionDiagnostics: Codable {
 
 // MARK: - Delegate Protocol
 
+@MainActor
 public protocol DeepgramClientDelegate: AnyObject {
     func deepgramClient(_ client: DeepgramClient, didReceiveTranscript transcript: String, isFinal: Bool)
 }

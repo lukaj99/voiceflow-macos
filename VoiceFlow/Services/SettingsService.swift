@@ -246,40 +246,6 @@ public actor SettingsService {
         print("⚙️ All settings reset to defaults")
     }
 
-    // MARK: - Convenience Methods
-
-    public func getBool(_ key: SettingsKey) async throws -> Bool {
-        return try await get(key, type: Bool.self)
-    }
-
-    public func getInt(_ key: SettingsKey) async throws -> Int {
-        return try await get(key, type: Int.self)
-    }
-
-    public func getDouble(_ key: SettingsKey) async throws -> Double {
-        return try await get(key, type: Double.self)
-    }
-
-    public func getString(_ key: SettingsKey) async throws -> String {
-        return try await get(key, type: String.self)
-    }
-
-    public func setBool(_ key: SettingsKey, value: Bool) async throws {
-        try await set(key, value: value)
-    }
-
-    public func setInt(_ key: SettingsKey, value: Int) async throws {
-        try await set(key, value: value)
-    }
-
-    public func setDouble(_ key: SettingsKey, value: Double) async throws {
-        try await set(key, value: value)
-    }
-
-    public func setString(_ key: SettingsKey, value: String) async throws {
-        try await set(key, value: value)
-    }
-
     // MARK: - Observation
 
     /// Add an observer for settings changes
@@ -302,81 +268,14 @@ public actor SettingsService {
         observers.removeValue(forKey: id)
     }
 
-    // MARK: - Bulk Operations
-
-    /// Get multiple settings at once
-    public func getMultiple(_ keys: [SettingsKey]) async -> [SettingsKey: Any] {
-        var results: [SettingsKey: Any] = [:]
-
-        for key in keys {
-            let value = userDefaults.object(forKey: key.rawValue) ?? key.defaultValue
-            results[key] = value
-            settingsCache[key] = value
-        }
-
-        return results
-    }
-
-    /// Set multiple settings at once
-    public func setMultiple(_ settings: [SettingsKey: Any]) async throws {
-        for (key, value) in settings {
-            try await validateValue(value, for: key)
-            userDefaults.set(value, forKey: key.rawValue)
-            settingsCache[key] = value
-        }
-
-        // Notify observers
-        for (key, value) in settings {
-            for observer in observers.values {
-                observer(key, value)
-            }
-        }
-
-        print("⚙️ Multiple settings updated: \(settings.keys.map(\.rawValue))")
-    }
-
-    // MARK: - Import/Export
-
-    /// Export all settings to a dictionary
-    public func exportSettings() async -> [String: Any] {
-        var exported: [String: Any] = [:]
-
-        for key in SettingsKey.allCases {
-            let value = userDefaults.object(forKey: key.rawValue) ?? key.defaultValue
-            exported[key.rawValue] = value
-        }
-
-        return exported
-    }
-
-    /// Import settings from a dictionary
-    public func importSettings(_ settings: [String: Any]) async throws {
-        var validSettings: [SettingsKey: Any] = [:]
-
-        for (keyString, value) in settings {
-            guard let key = SettingsKey(rawValue: keyString) else {
-                print("⚠️ Unknown setting key ignored: \(keyString)")
-                continue
-            }
-
-            try await validateValue(value, for: key)
-            validSettings[key] = value
-        }
-
-        try await setMultiple(validSettings)
-        print("⚙️ Settings imported successfully")
-    }
-
     // MARK: - Private Methods
 
     /// Initialize default values in UserDefaults
     private func initializeDefaults() async {
         var defaults: [String: Any] = [:]
 
-        for key in SettingsKey.allCases {
-            if userDefaults.object(forKey: key.rawValue) == nil {
-                defaults[key.rawValue] = key.defaultValue
-            }
+        for key in SettingsKey.allCases where userDefaults.object(forKey: key.rawValue) == nil {
+            defaults[key.rawValue] = key.defaultValue
         }
 
         if !defaults.isEmpty {
@@ -432,6 +331,107 @@ public actor SettingsService {
         default:
             break
         }
+    }
+}
+
+// MARK: - Convenience Methods Extension
+
+extension SettingsService {
+    public func getBool(_ key: SettingsKey) async throws -> Bool {
+        return try await get(key, type: Bool.self)
+    }
+
+    public func getInt(_ key: SettingsKey) async throws -> Int {
+        return try await get(key, type: Int.self)
+    }
+
+    public func getDouble(_ key: SettingsKey) async throws -> Double {
+        return try await get(key, type: Double.self)
+    }
+
+    public func getString(_ key: SettingsKey) async throws -> String {
+        return try await get(key, type: String.self)
+    }
+
+    public func setBool(_ key: SettingsKey, value: Bool) async throws {
+        try await set(key, value: value)
+    }
+
+    public func setInt(_ key: SettingsKey, value: Int) async throws {
+        try await set(key, value: value)
+    }
+
+    public func setDouble(_ key: SettingsKey, value: Double) async throws {
+        try await set(key, value: value)
+    }
+
+    public func setString(_ key: SettingsKey, value: String) async throws {
+        try await set(key, value: value)
+    }
+}
+
+// MARK: - Bulk Operations Extension
+
+extension SettingsService {
+    /// Get multiple settings at once
+    public func getMultiple(_ keys: [SettingsKey]) async -> [SettingsKey: Any] {
+        var results: [SettingsKey: Any] = [:]
+
+        for key in keys {
+            let value = userDefaults.object(forKey: key.rawValue) ?? key.defaultValue
+            results[key] = value
+            settingsCache[key] = value
+        }
+
+        return results
+    }
+
+    /// Set multiple settings at once
+    public func setMultiple(_ settings: [SettingsKey: Any]) async throws {
+        for (key, value) in settings {
+            try await validateValue(value, for: key)
+            userDefaults.set(value, forKey: key.rawValue)
+            settingsCache[key] = value
+        }
+
+        // Notify observers
+        for (key, value) in settings {
+            for observer in observers.values {
+                observer(key, value)
+            }
+        }
+
+        print("⚙️ Multiple settings updated: \(settings.keys.map(\.rawValue))")
+    }
+
+    /// Export all settings to a dictionary
+    public func exportSettings() async -> [String: Any] {
+        var exported: [String: Any] = [:]
+
+        for key in SettingsKey.allCases {
+            let value = userDefaults.object(forKey: key.rawValue) ?? key.defaultValue
+            exported[key.rawValue] = value
+        }
+
+        return exported
+    }
+
+    /// Import settings from a dictionary
+    public func importSettings(_ settings: [String: Any]) async throws {
+        var validSettings: [SettingsKey: Any] = [:]
+
+        for (keyString, value) in settings {
+            guard let key = SettingsKey(rawValue: keyString) else {
+                print("⚠️ Unknown setting key ignored: \(keyString)")
+                continue
+            }
+
+            try await validateValue(value, for: key)
+            validSettings[key] = value
+        }
+
+        try await setMultiple(validSettings)
+        print("⚙️ Settings imported successfully")
     }
 }
 

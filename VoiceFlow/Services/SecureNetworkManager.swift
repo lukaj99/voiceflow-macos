@@ -280,7 +280,10 @@ final class NetworkSessionDelegateProxy: NSObject, URLSessionDelegate, @unchecke
         }
     }
 
-    private func getPinnedHostSync(for hostname: String, from pinnedHosts: [String: SecureNetworkManager.PinnedHost]) -> SecureNetworkManager.PinnedHost? {
+    private func getPinnedHostSync(
+        for hostname: String,
+        from pinnedHosts: [String: SecureNetworkManager.PinnedHost]
+    ) -> SecureNetworkManager.PinnedHost? {
         if let pinnedHost = pinnedHosts[hostname] { return pinnedHost }
         for (_, pinnedHost) in pinnedHosts {
             if pinnedHost.includeSubdomains && hostname.hasSuffix(".\(pinnedHost.hostname)") {
@@ -290,22 +293,27 @@ final class NetworkSessionDelegateProxy: NSObject, URLSessionDelegate, @unchecke
         return nil
     }
 
-    private func validateCertificateChainSync(serverTrust: SecTrust, pinnedHost: SecureNetworkManager.PinnedHost) -> Bool {
-        guard let certificateChain = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate], !certificateChain.isEmpty else {
+    private func validateCertificateChainSync(
+        serverTrust: SecTrust,
+        pinnedHost: SecureNetworkManager.PinnedHost
+    ) -> Bool {
+        guard let certificateChain = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate],
+              !certificateChain.isEmpty else {
             return false
         }
         let serverCertificatesData = certificateChain.compactMap { SecCertificateCopyData($0) as Data }
         for serverCertData in serverCertificatesData {
-            for pinnedCertData in pinnedHost.pinnedCertificates {
-                if serverCertData == pinnedCertData {
-                    return true
-                }
+            for pinnedCertData in pinnedHost.pinnedCertificates where serverCertData == pinnedCertData {
+                return true
             }
         }
         // Public key pinning fallback
         for serverCert in certificateChain {
             guard let serverPublicKey = SecCertificateCopyKey(serverCert),
-                  let serverPublicKeyData = SecKeyCopyExternalRepresentation(serverPublicKey, nil) as Data? else { continue }
+                  let serverPublicKeyData = SecKeyCopyExternalRepresentation(
+                      serverPublicKey,
+                      nil
+                  ) as Data? else { continue }
             let serverKeyHash = SHA256.hash(data: serverPublicKeyData)
             for pinnedCertData in pinnedHost.pinnedCertificates {
                 if let pinnedCert = SecCertificateCreateWithData(nil, pinnedCertData as CFData),
@@ -351,13 +359,11 @@ extension SecureNetworkManager {
 
         // Check if any server certificate matches our pinned certificates
         for serverCertData in serverCertificatesData {
-            for pinnedCertData in pinnedHost.pinnedCertificates {
-                if serverCertData == pinnedCertData {
-                    #if DEBUG
-                    print("✅ Certificate pinning successful for: \(pinnedHost.hostname)")
-                    #endif
-                    return true
-                }
+            for pinnedCertData in pinnedHost.pinnedCertificates where serverCertData == pinnedCertData {
+                #if DEBUG
+                print("✅ Certificate pinning successful for: \(pinnedHost.hostname)")
+                #endif
+                return true
             }
         }
 

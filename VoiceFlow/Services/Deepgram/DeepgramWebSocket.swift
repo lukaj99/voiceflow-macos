@@ -202,7 +202,11 @@ public class DeepgramWebSocket: NSObject {
         let jitter = Double.random(in: 0...0.1) * delay
         let finalDelay = delay + jitter
 
-        print("🔄 Scheduling reconnection attempt \(currentRetryAttempt)/\(maxRetryAttempts) in \(String(format: "%.1f", finalDelay))s...")
+        let delayStr = String(format: "%.1f", finalDelay)
+        print(
+            "🔄 Scheduling reconnection attempt \(currentRetryAttempt)/\(maxRetryAttempts) "
+            + "in \(delayStr)s..."
+        )
 
         onConnectionStateChange?(.reconnecting)
 

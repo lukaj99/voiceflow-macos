@@ -221,8 +221,89 @@ public actor SecureCredentialService {
         return await exists(for: .deepgramAPIKey)
     }
 
-    // MARK: - LLM API Key Methods
+    // MARK: - Migration & Setup
 
+    /// Prompt user to configure API key if none exists (secure approach)
+    public func ensureCredentialsConfigured() async throws {
+        if !(await hasDeepgramAPIKey()) {
+            let message = "Deepgram API key not configured. Please configure your API key "
+                + "through the settings."
+            throw CredentialError.keyNotFound(message)
+        }
+    }
+
+    /// Validate and configure API key from user input with comprehensive validation
+    public func configureDeepgramAPIKey(from userInput: String) async throws {
+        // Use validation framework for comprehensive API key validation
+        let validationResult = await validator.validateAPIKey(userInput)
+
+        guard validationResult.isValid else {
+            let errors = validationResult.errors.map(\.localizedDescription).joined(separator: "; ")
+            let message = "Deepgram API key validation failed: \(errors)"
+            throw CredentialError.invalidCredential(message)
+        }
+
+        // Use sanitized API key
+        let sanitizedKey = validationResult.sanitized ?? userInput
+
+        // Store the validated and sanitized API key
+        try await storeDeepgramAPIKey(sanitizedKey)
+        #if DEBUG
+        print("✅ Deepgram API key validated and configured successfully from user input")
+        #endif
+    }
+
+    /// Import API key from environment variable (ONLY for development/CI - disabled in production)
+    public func configureFromEnvironment() async throws {
+        #if DEBUG
+        // Only allow environment variable configuration in debug builds
+        guard let apiKey = ProcessInfo.processInfo.environment["DEEPGRAM_API_KEY"] else {
+            throw CredentialError.keyNotFound("DEEPGRAM_API_KEY environment variable not found (debug only)")
+        }
+
+        guard !apiKey.isEmpty else {
+            throw CredentialError.invalidCredential("DEEPGRAM_API_KEY environment variable is empty")
+        }
+
+        try await configureDeepgramAPIKey(from: apiKey)
+        print("✅ Deepgram API key configured from environment variable (debug build)")
+        #else
+        // Explicitly disable environment variable access in production
+        let message = "Environment variable configuration is disabled in production builds "
+            + "for security"
+        throw CredentialError.keyNotFound(message)
+        #endif
+    }
+
+    /// Health check for keychain accessibility
+    public func performHealthCheck() async -> Bool {
+        do {
+            // Test by storing and retrieving a test value
+            let testKey = "health_check_\(UUID().uuidString)"
+            let testValue = "test_value"
+
+            try keychain.set(testValue, key: testKey)
+            let retrieved = try keychain.get(testKey)
+            try keychain.remove(testKey)
+
+            let isHealthy = retrieved == testValue
+            #if DEBUG
+            print("🔐 Keychain health check: \(isHealthy ? "✅ Passed" : "❌ Failed")")
+            #endif
+            return isHealthy
+
+        } catch {
+            #if DEBUG
+            print("❌ Keychain health check failed: \(error)")
+            #endif
+            return false
+        }
+    }
+}
+
+// MARK: - LLM API Key Methods Extension
+
+extension SecureCredentialService {
     /// Store OpenAI API key with validation
     public func storeOpenAIAPIKey(_ apiKey: String) async throws {
         guard await validateCredential(apiKey, for: .openAIAPIKey) else {
@@ -281,8 +362,9 @@ public actor SecureCredentialService {
         let validationResult = await validator.validateAPIKey(userInput)
 
         guard validationResult.isValid else {
-            let errorMessage = validationResult.errors.map(\.localizedDescription).joined(separator: "; ")
-            throw CredentialError.invalidCredential("\(provider.displayName) API key validation failed: \(errorMessage)")
+            let errors = validationResult.errors.map(\.localizedDescription).joined(separator: "; ")
+            let message = "\(provider.displayName) API key validation failed: \(errors)"
+            throw CredentialError.invalidCredential(message)
         }
 
         // Use sanitized API key
@@ -319,83 +401,9 @@ public actor SecureCredentialService {
             return await hasClaudeAPIKey()
         }
     }
-
-    // MARK: - Migration & Setup
-
-    /// Prompt user to configure API key if none exists (secure approach)
-    public func ensureCredentialsConfigured() async throws {
-        if !(await hasDeepgramAPIKey()) {
-            throw CredentialError.keyNotFound("Deepgram API key not configured. Please configure your API key through the settings.")
-        }
-    }
-
-    /// Validate and configure API key from user input with comprehensive validation
-    public func configureDeepgramAPIKey(from userInput: String) async throws {
-        // Use validation framework for comprehensive API key validation
-        let validationResult = await validator.validateAPIKey(userInput)
-
-        guard validationResult.isValid else {
-            let errorMessage = validationResult.errors.map(\.localizedDescription).joined(separator: "; ")
-            throw CredentialError.invalidCredential("Deepgram API key validation failed: \(errorMessage)")
-        }
-
-        // Use sanitized API key
-        let sanitizedKey = validationResult.sanitized ?? userInput
-
-        // Store the validated and sanitized API key
-        try await storeDeepgramAPIKey(sanitizedKey)
-        #if DEBUG
-        print("✅ Deepgram API key validated and configured successfully from user input")
-        #endif
-    }
-
-    /// Import API key from environment variable (ONLY for development/CI - disabled in production)
-    public func configureFromEnvironment() async throws {
-        #if DEBUG
-        // Only allow environment variable configuration in debug builds
-        guard let apiKey = ProcessInfo.processInfo.environment["DEEPGRAM_API_KEY"] else {
-            throw CredentialError.keyNotFound("DEEPGRAM_API_KEY environment variable not found (debug only)")
-        }
-
-        guard !apiKey.isEmpty else {
-            throw CredentialError.invalidCredential("DEEPGRAM_API_KEY environment variable is empty")
-        }
-
-        try await configureDeepgramAPIKey(from: apiKey)
-        print("✅ Deepgram API key configured from environment variable (debug build)")
-        #else
-        // Explicitly disable environment variable access in production
-        throw CredentialError.keyNotFound("Environment variable configuration is disabled in production builds for security")
-        #endif
-    }
-
-    /// Health check for keychain accessibility
-    public func performHealthCheck() async -> Bool {
-        do {
-            // Test by storing and retrieving a test value
-            let testKey = "health_check_\(UUID().uuidString)"
-            let testValue = "test_value"
-
-            try keychain.set(testValue, key: testKey)
-            let retrieved = try keychain.get(testKey)
-            try keychain.remove(testKey)
-
-            let isHealthy = retrieved == testValue
-            #if DEBUG
-            print("🔐 Keychain health check: \(isHealthy ? "✅ Passed" : "❌ Failed")")
-            #endif
-            return isHealthy
-
-        } catch {
-            #if DEBUG
-            print("❌ Keychain health check failed: \(error)")
-            #endif
-            return false
-        }
-    }
 }
 
-// MARK: - Extensions
+// MARK: - Character Extension
 
 extension Character {
     fileprivate var isHexDigit: Bool {

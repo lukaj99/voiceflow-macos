@@ -195,7 +195,13 @@ actor PerformanceReporter {
         // Buffer pool health
         let bufferPoolHealth: PerformanceHealthStatus.HealthLevel
         if let bufferStats = recent.compactMap({ $0.audioBufferStats }).last {
-            bufferPoolHealth = bufferStats.poolHitRate > 0.8 ? .good : (bufferStats.poolHitRate > 0.5 ? .warning : .critical)
+            if bufferStats.poolHitRate > 0.8 {
+                bufferPoolHealth = .good
+            } else if bufferStats.poolHitRate > 0.5 {
+                bufferPoolHealth = .warning
+            } else {
+                bufferPoolHealth = .critical
+            }
         } else {
             bufferPoolHealth = .unknown
         }

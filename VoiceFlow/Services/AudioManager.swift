@@ -271,7 +271,8 @@ actor AudioProcessingActor {
         guard let converter = self.audioConverter,
               let targetFormat = self.targetFormat else { return nil }
 
-        let targetCapacity = AVAudioFrameCount(Double(buffer.frameLength) * targetFormat.sampleRate / buffer.format.sampleRate)
+        let capacityRatio = targetFormat.sampleRate / buffer.format.sampleRate
+        let targetCapacity = AVAudioFrameCount(Double(buffer.frameLength) * capacityRatio)
         guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: targetCapacity) else {
             return nil
         }
@@ -304,6 +305,7 @@ actor AudioProcessingActor {
 
 // MARK: - Delegate Protocol
 
+@MainActor
 public protocol AudioManagerDelegate: AnyObject {
     func audioManager(_ manager: AudioManager, didReceiveAudioData data: Data)
 }

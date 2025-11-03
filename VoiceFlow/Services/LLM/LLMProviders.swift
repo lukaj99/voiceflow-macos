@@ -4,14 +4,26 @@ import Foundation
 
 /// Protocol for LLM provider implementations
 protocol LLMProviderProtocol {
-    func callAPI(prompt: String, apiKey: String, model: LLMModel, maxTokens: Int, temperature: Float) async throws -> String
+    func callAPI(
+        prompt: String,
+        apiKey: String,
+        model: LLMModel,
+        maxTokens: Int,
+        temperature: Float
+    ) async throws -> String
 }
 
 /// OpenAI GPT provider implementation
 struct OpenAIProvider: LLMProviderProtocol {
     private let httpClient = URLSession.shared
 
-    func callAPI(prompt: String, apiKey: String, model: LLMModel, maxTokens: Int, temperature: Float) async throws -> String {
+    func callAPI(
+        prompt: String,
+        apiKey: String,
+        model: LLMModel,
+        maxTokens: Int,
+        temperature: Float
+    ) async throws -> String {
         guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
             throw ProcessingError.apiCallFailed(message: "Invalid OpenAI API URL")
         }
@@ -68,7 +80,13 @@ struct OpenAIProvider: LLMProviderProtocol {
 struct ClaudeProvider: LLMProviderProtocol {
     private let httpClient = URLSession.shared
 
-    func callAPI(prompt: String, apiKey: String, model: LLMModel, maxTokens: Int, temperature: Float) async throws -> String {
+    func callAPI(
+        prompt: String,
+        apiKey: String,
+        model: LLMModel,
+        maxTokens: Int,
+        temperature: Float
+    ) async throws -> String {
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
             throw ProcessingError.apiCallFailed(message: "Invalid Claude API URL")
         }

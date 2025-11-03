@@ -56,7 +56,9 @@ public class DeepgramResponseParser {
                 let isFinal = response.is_final ?? false
                 let confidence = alternative.confidence ?? 0.0
 
-                print("📝 Transcript (\(isFinal ? "final" : "interim"), confidence: \(String(format: "%.2f", confidence))): \(transcript)")
+                let status = isFinal ? "final" : "interim"
+                let confidenceStr = String(format: "%.2f", confidence)
+                print("📝 Transcript (\(status), confidence: \(confidenceStr)): \(transcript)")
 
                 // Calculate latency if we have timing info
                 if let start = response.start {

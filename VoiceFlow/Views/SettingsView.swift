@@ -88,126 +88,10 @@ public struct SettingsView: View {
                 }
 
                 // LLM Post-Processing Section
-                Section(header: Text("LLM Enhancement")) {
-                    Toggle("Enable LLM Post-Processing", isOn: Binding(
-                        get: { AppState.shared.llmPostProcessingEnabled },
-                        set: { enabled in
-                            if enabled {
-                                AppState.shared.enableLLMPostProcessing()
-                            } else {
-                                AppState.shared.disableLLMPostProcessing()
-                            }
-                        }
-                    ))
-
-                    if AppState.shared.llmPostProcessingEnabled {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(
-                                "Improves transcription accuracy with grammar correction, punctuation, " +
-                                "and word substitution (e.g., 'slash' → '/')"
-                            )
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            // LLM Provider Selection
-                            HStack {
-                                Text("Provider:")
-                                    .font(.caption)
-                                Spacer()
-                                Picker("Provider", selection: Binding(
-                                    get: { AppState.shared.selectedLLMProvider },
-                                    set: { provider in AppState.shared.selectedLLMProvider = provider }
-                                )) {
-                                    Text("OpenAI GPT").tag("openai")
-                                    Text("Anthropic Claude").tag("claude")
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                                .fixedSize()
-                            }
-
-                            // Model Selection
-                            HStack {
-                                Text("Model:")
-                                    .font(.caption)
-                                Spacer()
-                                Picker("Model", selection: Binding(
-                                    get: { AppState.shared.selectedLLMModel },
-                                    set: { model in AppState.shared.selectedLLMModel = model }
-                                )) {
-                                    if AppState.shared.selectedLLMProvider == "openai" {
-                                        Text("GPT-4o Mini (Recommended)").tag("gpt-4o-mini")
-                                        Text("GPT-4o").tag("gpt-4o")
-                                    } else {
-                                        Text("Claude 3 Haiku (Recommended)").tag("claude-3-haiku-20240307")
-                                        Text("Claude 3 Sonnet").tag("claude-3-sonnet-20240229")
-                                    }
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                                .fixedSize()
-                            }
-
-                            // Configuration Status
-                            HStack {
-                                Image(systemName: AppState.shared.hasLLMProvidersConfigured ?
-                                      "checkmark.shield.fill" : "exclamationmark.shield.fill")
-                                    .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
-
-                                Text(AppState.shared.hasLLMProvidersConfigured ?
-                                     "LLM providers configured" :
-                                     "LLM API key required")
-                                    .font(.caption)
-                                    .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
-                            }
-
-                            // Processing Status
-                            if AppState.shared.isLLMProcessing {
-                                HStack {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                    Text("Processing with LLM...")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                }
-                            }
-
-                            // Error Display
-                            if let error = AppState.shared.llmProcessingError {
-                                HStack {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundColor(.red)
-                                    Text(error)
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                }
-                            }
-
-                            // Statistics
-                            let stats = AppState.shared.llmProcessingStats
-                            if stats.totalProcessed > 0 {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Statistics:")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                    Text(
-                                        "Processed: \(stats.totalProcessed), " +
-                                        "Success: \(String(format: "%.1f", stats.successRate * 100))%"
-                                    )
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("Avg Processing: \(String(format: "%.1f", stats.averageProcessingTime))s")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .padding(.leading, 8)
-                    }
-
-                    Button("Configure LLM API Keys") {
-                        showingLLMAPIKeyConfiguration = true
-                    }
-                    .disabled(isTestingCredentials)
-                }
+                LLMEnhancementSection(
+                    isTestingCredentials: isTestingCredentials,
+                    showingLLMAPIKeyConfiguration: $showingLLMAPIKeyConfiguration
+                )
 
                 // Features Section
                 Section("Features") {
@@ -370,4 +254,154 @@ public struct SettingsView: View {
 #Preview("Dark Mode") {
     SettingsView(viewModel: SimpleTranscriptionViewModel())
         .preferredColorScheme(.dark)
+}
+
+// MARK: - Supporting Views
+
+private struct LLMEnhancementSection: View {
+    let isTestingCredentials: Bool
+    @Binding var showingLLMAPIKeyConfiguration: Bool
+
+    var body: some View {
+        Section(header: Text("LLM Enhancement")) {
+            Toggle("Enable LLM Post-Processing", isOn: Binding(
+                get: { AppState.shared.llmPostProcessingEnabled },
+                set: { enabled in
+                    if enabled {
+                        AppState.shared.enableLLMPostProcessing()
+                    } else {
+                        AppState.shared.disableLLMPostProcessing()
+                    }
+                }
+            ))
+
+            if AppState.shared.llmPostProcessingEnabled {
+                llmConfigurationDetails
+            }
+
+            Button("Configure LLM API Keys") {
+                showingLLMAPIKeyConfiguration = true
+            }
+            .disabled(isTestingCredentials)
+        }
+    }
+
+    private var llmConfigurationDetails: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(
+                "Improves transcription accuracy with grammar correction, punctuation, " +
+                "and word substitution (e.g., 'slash' → '/')"
+            )
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            providerSelection
+            modelSelection
+            configurationStatus
+            processingStatus
+            errorDisplay
+            statisticsDisplay
+        }
+        .padding(.leading, 8)
+    }
+
+    private var providerSelection: some View {
+        HStack {
+            Text("Provider:")
+                .font(.caption)
+            Spacer()
+            Picker("Provider", selection: Binding(
+                get: { AppState.shared.selectedLLMProvider },
+                set: { provider in AppState.shared.selectedLLMProvider = provider }
+            )) {
+                Text("OpenAI GPT").tag("openai")
+                Text("Anthropic Claude").tag("claude")
+            }
+            .pickerStyle(MenuPickerStyle())
+            .fixedSize()
+        }
+    }
+
+    private var modelSelection: some View {
+        HStack {
+            Text("Model:")
+                .font(.caption)
+            Spacer()
+            Picker("Model", selection: Binding(
+                get: { AppState.shared.selectedLLMModel },
+                set: { model in AppState.shared.selectedLLMModel = model }
+            )) {
+                if AppState.shared.selectedLLMProvider == "openai" {
+                    Text("GPT-4o Mini (Recommended)").tag("gpt-4o-mini")
+                    Text("GPT-4o").tag("gpt-4o")
+                } else {
+                    Text("Claude 3 Haiku (Recommended)").tag("claude-3-haiku-20240307")
+                    Text("Claude 3 Sonnet").tag("claude-3-sonnet-20240229")
+                }
+            }
+            .pickerStyle(MenuPickerStyle())
+            .fixedSize()
+        }
+    }
+
+    private var configurationStatus: some View {
+        HStack {
+            Image(systemName: AppState.shared.hasLLMProvidersConfigured ?
+                  "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
+
+            Text(AppState.shared.hasLLMProvidersConfigured ?
+                 "LLM providers configured" :
+                 "LLM API key required")
+                .font(.caption)
+                .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .green : .orange)
+        }
+    }
+
+    @ViewBuilder
+    private var processingStatus: some View {
+        if AppState.shared.isLLMProcessing {
+            HStack {
+                ProgressView()
+                    .scaleEffect(0.8)
+                Text("Processing with LLM...")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var errorDisplay: some View {
+        if let error = AppState.shared.llmProcessingError {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.red)
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statisticsDisplay: some View {
+        let stats = AppState.shared.llmProcessingStats
+        if stats.totalProcessed > 0 {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Statistics:")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                Text(
+                    "Processed: \(stats.totalProcessed), " +
+                    "Success: \(String(format: "%.1f", stats.successRate * 100))%"
+                )
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("Avg Processing: \(String(format: "%.1f", stats.averageProcessingTime))s")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
 }

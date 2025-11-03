@@ -1,9 +1,25 @@
 import Foundation
 import OSLog
 
+/// Protocol for error reporting functionality
+public protocol ErrorReporting: Sendable {
+    func reportError(
+        _ error: VoiceFlowError,
+        context: ErrorReporter.ErrorContext,
+        userActions: [String],
+        stackTrace: String?
+    ) async
+
+    func reportError(
+        _ error: VoiceFlowError,
+        component: String,
+        function: String
+    ) async
+}
+
 /// Centralized error reporting and logging system
 /// Single Responsibility: Error collection, logging, and reporting
-public actor ErrorReporter {
+public actor ErrorReporter: ErrorReporting {
 
     // MARK: - Properties
 
