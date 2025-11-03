@@ -121,18 +121,41 @@ public actor ValidationFramework {
 
     /// Validate input against comprehensive security and format rules
     public func validate(_ input: String, rule: ValidationRule) async -> ValidationResult {
-        var errors: [ValidationError] = []
-
-        // Basic validation
-        if rule.required && input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(.empty(field: rule.field))
+        // Basic validation with early return
+        if let emptyError = validateRequired(input, rule: rule) {
             await auditLog.logValidationFailure(field: rule.field, error: "Empty required field")
-            return ValidationResult(isValid: false, errors: errors)
+            return ValidationResult(isValid: false, errors: [emptyError])
         }
 
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        var errors: [ValidationError] = []
 
-        // Length validation
+        // Perform all validations
+        errors.append(contentsOf: validateLength(trimmed, rule: rule))
+        errors.append(contentsOf: validatePattern(trimmed, rule: rule))
+        errors.append(contentsOf: validateCharacterSet(trimmed, rule: rule))
+        errors.append(contentsOf: await validateSecurity(trimmed, rule: rule))
+        errors.append(contentsOf: await validateCustom(trimmed, rule: rule))
+
+        // Determine result
+        let isValid = errors.isEmpty
+        let sanitized = isValid ? await sanitizeInput(trimmed) : nil
+
+        await logValidationResult(isValid: isValid, field: rule.field, errors: errors)
+
+        return ValidationResult(isValid: isValid, errors: errors, sanitized: sanitized)
+    }
+
+    private func validateRequired(_ input: String, rule: ValidationRule) -> ValidationError? {
+        guard rule.required && input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return .empty(field: rule.field)
+    }
+
+    private func validateLength(_ trimmed: String, rule: ValidationRule) -> [ValidationError] {
+        var errors: [ValidationError] = []
+
         if let minLength = rule.minLength, trimmed.count < minLength {
             errors.append(.tooShort(field: rule.field, minimum: minLength, actual: trimmed.count))
         }
@@ -141,54 +164,64 @@ public actor ValidationFramework {
             errors.append(.tooLong(field: rule.field, maximum: maxLength, actual: trimmed.count))
         }
 
-        // Pattern validation
-        if let pattern = rule.pattern {
-            if let regex = try? NSRegularExpression(pattern: pattern) {
-                let range = NSRange(trimmed.startIndex..., in: trimmed)
-                if regex.firstMatch(in: trimmed, range: range) == nil {
-                    errors.append(.invalidFormat(field: rule.field, expected: pattern))
-                }
-            }
+        return errors
+    }
+
+    private func validatePattern(_ trimmed: String, rule: ValidationRule) -> [ValidationError] {
+        guard let pattern = rule.pattern,
+              let regex = try? NSRegularExpression(pattern: pattern) else {
+            return []
         }
 
-        // Character set validation
-        if let allowedCharacters = rule.allowedCharacters {
-            let illegalChars = trimmed.compactMap { char in
-                if let unicodeScalar = UnicodeScalar(String(char)) {
-                    return allowedCharacters.contains(unicodeScalar) ? nil : char
-                }
-                return char // Character without valid unicode scalar is considered illegal
-            }
-            if !illegalChars.isEmpty {
-                errors.append(.containsIllegalCharacters(field: rule.field, characters: Array(illegalChars.prefix(5))))
-            }
+        let range = NSRange(trimmed.startIndex..., in: trimmed)
+        guard regex.firstMatch(in: trimmed, range: range) == nil else {
+            return []
         }
 
-        // Security threat detection
+        return [.invalidFormat(field: rule.field, expected: pattern)]
+    }
+
+    private func validateCharacterSet(_ trimmed: String, rule: ValidationRule) -> [ValidationError] {
+        guard let allowedCharacters = rule.allowedCharacters else { return [] }
+
+        let illegalChars = trimmed.compactMap { char in
+            if let unicodeScalar = UnicodeScalar(String(char)) {
+                return allowedCharacters.contains(unicodeScalar) ? nil : char
+            }
+            return char
+        }
+
+        guard !illegalChars.isEmpty else { return [] }
+        return [.containsIllegalCharacters(field: rule.field, characters: Array(illegalChars.prefix(5)))]
+    }
+
+    private func validateSecurity(_ trimmed: String, rule: ValidationRule) async -> [ValidationError] {
         let threatResults = await detectSecurityThreats(in: trimmed)
+        var errors: [ValidationError] = []
+
         for threat in threatResults {
             errors.append(.potentialSecurityThreat(field: rule.field, threat: threat))
             await auditLog.logSecurityThreat(field: rule.field, threat: threat, input: trimmed)
         }
 
-        // Custom validation
-        if let customValidator = rule.customValidator {
-            let customValid = await customValidator(trimmed)
-            if !customValid {
-                errors.append(.custom(field: rule.field, message: "Custom validation failed"))
-            }
-        }
+        return errors
+    }
 
-        let isValid = errors.isEmpty
-        let sanitized = isValid ? await sanitizeInput(trimmed) : nil
+    private func validateCustom(_ trimmed: String, rule: ValidationRule) async -> [ValidationError] {
+        guard let customValidator = rule.customValidator else { return [] }
 
+        let customValid = await customValidator(trimmed)
+        guard !customValid else { return [] }
+
+        return [.custom(field: rule.field, message: "Custom validation failed")]
+    }
+
+    private func logValidationResult(isValid: Bool, field: String, errors: [ValidationError]) async {
         if isValid {
-            await auditLog.logValidationSuccess(field: rule.field)
+            await auditLog.logValidationSuccess(field: field)
         } else {
-            await auditLog.logValidationFailure(field: rule.field, error: errors.map(\.localizedDescription).joined(separator: "; "))
+            await auditLog.logValidationFailure(field: field, error: errors.map(\.localizedDescription).joined(separator: "; "))
         }
-
-        return ValidationResult(isValid: isValid, errors: errors, sanitized: sanitized)
     }
 
     /// Validate API key specifically

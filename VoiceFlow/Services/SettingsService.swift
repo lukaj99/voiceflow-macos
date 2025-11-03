@@ -387,33 +387,50 @@ public actor SettingsService {
 
     /// Validate a value for a specific setting key
     private func validateValue<T>(_ value: T, for key: SettingsKey) async throws {
+        // Extract validation to separate methods by type
+        try validateDoubleRange(value, for: key)
+        try validateIntRange(value, for: key)
+    }
+
+    private func validateDoubleRange<T>(_ value: T, for key: SettingsKey) throws {
+        guard let doubleValue = value as? Double else { return }
+
         switch key {
         case .audioLevel:
-            if let level = value as? Double, level < 0.0 || level > 1.0 {
+            guard doubleValue >= 0.0 && doubleValue <= 1.0 else {
                 throw SettingsError.invalidValue("Audio level must be between 0.0 and 1.0")
             }
         case .autoSaveInterval:
-            if let interval = value as? Double, interval < 5.0 {
+            guard doubleValue >= 5.0 else {
                 throw SettingsError.invalidValue("Auto-save interval must be at least 5 seconds")
             }
-        case .fontSize:
-            if let size = value as? Int, size < 8 || size > 72 {
-                throw SettingsError.invalidValue("Font size must be between 8 and 72")
-            }
         case .windowOpacity:
-            if let opacity = value as? Double, opacity < 0.1 || opacity > 1.0 {
+            guard doubleValue >= 0.1 && doubleValue <= 1.0 else {
                 throw SettingsError.invalidValue("Window opacity must be between 0.1 and 1.0")
             }
-        case .processingThreads:
-            if let threads = value as? Int, threads < 1 || threads > 16 {
-                throw SettingsError.invalidValue("Processing threads must be between 1 and 16")
-            }
         case .networkTimeout:
-            if let timeout = value as? Double, timeout < 5.0 || timeout > 300.0 {
+            guard doubleValue >= 5.0 && doubleValue <= 300.0 else {
                 throw SettingsError.invalidValue("Network timeout must be between 5 and 300 seconds")
             }
         default:
-            break // No specific validation needed
+            break
+        }
+    }
+
+    private func validateIntRange<T>(_ value: T, for key: SettingsKey) throws {
+        guard let intValue = value as? Int else { return }
+
+        switch key {
+        case .fontSize:
+            guard intValue >= 8 && intValue <= 72 else {
+                throw SettingsError.invalidValue("Font size must be between 8 and 72")
+            }
+        case .processingThreads:
+            guard intValue >= 1 && intValue <= 16 else {
+                throw SettingsError.invalidValue("Processing threads must be between 1 and 16")
+            }
+        default:
+            break
         }
     }
 }
