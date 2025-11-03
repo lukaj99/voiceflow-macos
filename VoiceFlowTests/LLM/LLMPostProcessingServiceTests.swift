@@ -1,9 +1,6 @@
 import XCTest
 @testable import VoiceFlow
 
-private typealias LLMModel = LLMPostProcessingService.LLMModel
-private typealias ServiceProvider = LLMPostProcessingService.LLMProvider
-
 /// Comprehensive tests for LLM post-processing service
 @MainActor
 final class LLMPostProcessingServiceTests: XCTestCase {

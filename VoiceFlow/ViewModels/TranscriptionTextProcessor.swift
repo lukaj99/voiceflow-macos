@@ -227,12 +227,12 @@ public actor TranscriptionTextProcessor {
 
         await MainActor.run {
             // Convert string to LLMModel enum
-            if let llmModel = LLMPostProcessingService.LLMModel(rawValue: model) {
+            if let llmModel = LLMModel(rawValue: model) {
                 llmService.selectedModel = llmModel
             }
 
-            // Convert to LLMPostProcessingService.LLMProvider
-            let serviceProvider = LLMPostProcessingService.LLMProvider(rawValue: providerRawValue) ?? .openAI
+            // Convert to LLMProvider
+            let serviceProvider = LLMProvider(rawValue: providerRawValue) ?? .openAI
             llmService.configureAPIKey(apiKey, for: serviceProvider)
 
             // Update app state
