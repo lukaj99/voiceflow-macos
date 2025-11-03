@@ -299,7 +299,11 @@ public class DeepgramClient: NSObject, ObservableObject {
         webSocketManager.onMessageReceived = { [weak self] message in
             Task { @MainActor in
                 guard let self = self else { return }
-                let newRetryAttempt = self.responseParser.handleTextMessage(message, currentRetryAttempt: self.webSocketManager.getCurrentRetryAttempt())
+                let currentAttempt = self.webSocketManager.getCurrentRetryAttempt()
+                let newRetryAttempt = self.responseParser.handleTextMessage(
+                    message,
+                    currentRetryAttempt: currentAttempt
+                )
                 if newRetryAttempt == 0 {
                     self.webSocketManager.resetRetryAttempt()
                 }

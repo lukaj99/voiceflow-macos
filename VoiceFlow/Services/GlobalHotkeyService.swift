@@ -107,14 +107,16 @@ public class GlobalHotkeyService: ObservableObject {
         var info: [String: String] = [:]
 
         // Show actual configured hotkeys or defaults
-        if let _ = toggleWidgetHotkey {
+        if toggleWidgetHotkey != nil {
             info["Toggle Widget"] = "\(modifiersString(defaultToggleModifiers))\(keyDisplayName(defaultToggleKey))"
         } else {
             info["Toggle Widget"] = "Not configured"
         }
 
-        if let _ = quickRecordHotkey {
-            info["Quick Record"] = "\(modifiersString(defaultQuickRecordModifiers))\(keyDisplayName(defaultQuickRecordKey))"
+        if quickRecordHotkey != nil {
+            let modifiers = modifiersString(defaultQuickRecordModifiers)
+            let keyName = keyDisplayName(defaultQuickRecordKey)
+            info["Quick Record"] = "\(modifiers)\(keyName)"
         } else {
             info["Quick Record"] = "Not configured"
         }

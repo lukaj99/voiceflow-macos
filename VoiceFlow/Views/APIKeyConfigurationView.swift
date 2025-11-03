@@ -184,23 +184,7 @@ public struct APIKeyConfigurationView: View {
             .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
 
             // Help Information
-            VStack(alignment: .leading, spacing: 8) {
-                Text("How to get your API key:")
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("1. Visit console.deepgram.com")
-                    Text("2. Sign up or log in to your account")
-                    Text("3. Navigate to API Keys section")
-                    Text("4. Create a new API key")
-                    Text("5. Copy and paste it above")
-                }
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-            .padding()
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            APIKeyHelpSection()
 
             Spacer()
         }
@@ -227,7 +211,8 @@ public struct APIKeyConfigurationView: View {
 
                 // Log validation attempt for security monitoring
                 if !result.isValid && !key.isEmpty {
-                    print("🔒 API key validation failed: \(result.errors.map(\.localizedDescription).joined(separator: ", "))")
+                    let errorDescriptions = result.errors.map(\.localizedDescription).joined(separator: ", ")
+                    print("🔒 API key validation failed: \(errorDescriptions)")
                 }
             }
         }
@@ -250,7 +235,9 @@ public struct APIKeyConfigurationView: View {
 
                 guard validationResult.isValid else {
                     await MainActor.run {
-                        configurationMessage = "Validation failed: \(validationResult.errors.first?.localizedDescription ?? "Invalid API key")"
+                        let errorMessage = validationResult.errors.first?.localizedDescription
+                            ?? "Invalid API key"
+                        configurationMessage = "Validation failed: \(errorMessage)"
                         isConfiguring = false
                     }
                     return
@@ -337,4 +324,28 @@ public struct APIKeyConfigurationView: View {
 #Preview("Dark Mode") {
     APIKeyConfigurationView()
         .preferredColorScheme(.dark)
+}
+
+// MARK: - Supporting Views
+
+private struct APIKeyHelpSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("How to get your API key:")
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("1. Visit console.deepgram.com")
+                Text("2. Sign up or log in to your account")
+                Text("3. Navigate to API Keys section")
+                Text("4. Create a new API key")
+                Text("5. Copy and paste it above")
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
 }

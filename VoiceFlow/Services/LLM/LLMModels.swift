@@ -58,21 +58,21 @@ public struct ProcessingResult: Sendable {
     public let processingTime: TimeInterval
     public let model: LLMModel
     public let changes: [TextChange]
+}
 
-    public struct TextChange: Sendable {
-        public let type: ChangeType
-        public let original: String
-        public let replacement: String
-        public let reason: String
+public struct TextChange: Sendable {
+    public let type: ChangeType
+    public let original: String
+    public let replacement: String
+    public let reason: String
+}
 
-        public enum ChangeType: Sendable {
-            case grammar
-            case punctuation
-            case wordSubstitution
-            case capitalization
-            case formatting
-        }
-    }
+public enum ChangeType: Sendable {
+    case grammar
+    case punctuation
+    case wordSubstitution
+    case capitalization
+    case formatting
 }
 
 /// Errors that can occur during LLM processing

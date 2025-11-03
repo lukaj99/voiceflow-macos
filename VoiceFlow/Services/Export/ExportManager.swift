@@ -155,7 +155,11 @@ public final class ExportManager {
     ///   - format: The target export format
     ///   - configuration: Export configuration options
     /// - Returns: Formatted content string ready for file output
-    private func generateContent(session: TranscriptionSession, format: ExportFormat, configuration: ExportConfiguration) -> String {
+    private func generateContent(
+        session: TranscriptionSession,
+        format: ExportFormat,
+        configuration: ExportConfiguration
+    ) -> String {
         switch format {
         case .text:
             return generateTextContent(session: session, configuration: configuration)

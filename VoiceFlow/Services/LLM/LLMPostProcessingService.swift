@@ -158,7 +158,10 @@ public class LLMPostProcessingService: ObservableObject {
     /// - Returns: Result containing ProcessingResult on success or ProcessingError on failure
     /// - Note: Results are cached; identical requests return cached results
     /// - SeeAlso: `ProcessingResult`, `ProcessingError`, `selectedModel`
-    public func processTranscription(_ text: String, context: String? = nil) async -> Result<ProcessingResult, ProcessingError> {
+    public func processTranscription(
+        _ text: String,
+        context: String? = nil
+    ) async -> Result<ProcessingResult, ProcessingError> {
         guard isEnabled else {
             return .failure(.modelUnavailable)
         }
@@ -190,7 +193,8 @@ public class LLMPostProcessingService: ObservableObject {
                 // Update statistics
                 processingStats.totalProcessed += 1
                 processingStats.totalProcessingTime += result.processingTime
-                processingStats.averageProcessingTime = processingStats.totalProcessingTime / Double(processingStats.totalProcessed)
+                processingStats.averageProcessingTime = processingStats.totalProcessingTime
+                    / Double(processingStats.totalProcessed)
 
                 if result.improvementScore > 0.5 {
                     processingStats.successfulProcessings += 1
@@ -261,7 +265,8 @@ public class LLMPostProcessingService: ObservableObject {
     /// Build the prompt for LLM processing
     private func buildPrompt(text: String, context: String?) -> String {
         var prompt = """
-        You are a professional transcription editor. Your task is to improve the accuracy and readability of speech-to-text transcriptions while maintaining the original meaning and style.
+        You are a professional transcription editor. Your task is to improve the accuracy and \
+        readability of speech-to-text transcriptions while maintaining the original meaning and style.
 
         Please:
         1. Correct grammar and punctuation errors
@@ -289,7 +294,8 @@ public class LLMPostProcessingService: ObservableObject {
         Original transcription:
         "\(text)"
 
-        Please provide the corrected version. Return only the corrected text without explanations or additional formatting.
+        Please provide the corrected version. Return only the corrected text without \
+        explanations or additional formatting.
         """
 
         return prompt
@@ -316,13 +322,13 @@ public class LLMPostProcessingService: ObservableObject {
     }
 
     /// Analyze changes between original and processed text
-    private func analyzeChanges(original: String, processed: String) -> [ProcessingResult.TextChange] {
-        var changes: [ProcessingResult.TextChange] = []
+    private func analyzeChanges(original: String, processed: String) -> [TextChange] {
+        var changes: [TextChange] = []
 
         // Simple word substitution detection
         for (spoken, symbol) in WordSubstitutions.mappings {
             if original.localizedCaseInsensitiveContains(spoken) && processed.contains(symbol) {
-                changes.append(ProcessingResult.TextChange(
+                changes.append(TextChange(
                     type: .wordSubstitution,
                     original: spoken,
                     replacement: symbol,
@@ -333,7 +339,7 @@ public class LLMPostProcessingService: ObservableObject {
 
         // Basic punctuation and capitalization analysis
         if original.filter({ $0.isPunctuation }).count < processed.filter({ $0.isPunctuation }).count {
-            changes.append(ProcessingResult.TextChange(
+            changes.append(TextChange(
                 type: .punctuation,
                 original: "missing punctuation",
                 replacement: "added punctuation",
@@ -345,7 +351,7 @@ public class LLMPostProcessingService: ObservableObject {
     }
 
     /// Calculate improvement score based on changes
-    private func calculateImprovementScore(changes: [ProcessingResult.TextChange]) -> Float {
+    private func calculateImprovementScore(changes: [TextChange]) -> Float {
         if changes.isEmpty {
             return 0.0
         }

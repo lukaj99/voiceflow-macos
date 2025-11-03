@@ -12,7 +12,6 @@ final class ErrorRecoveryManagerTests: XCTestCase {
 
     @MainActor
     override func setUp() async throws {
-        try await super.setUp()
         mockErrorReporter = MockErrorReporter()
         errorRecoveryManager = ErrorRecoveryManager(errorReporter: mockErrorReporter)
         cancellables = Set<AnyCancellable>()
@@ -23,7 +22,6 @@ final class ErrorRecoveryManagerTests: XCTestCase {
         errorRecoveryManager = nil
         mockErrorReporter = nil
         cancellables = nil
-        try await super.tearDown()
     }
 
     // MARK: - Initialization Tests
@@ -44,9 +42,9 @@ final class ErrorRecoveryManagerTests: XCTestCase {
         let error = VoiceFlowError.networkUnavailable
         let context = ErrorReporter.ErrorContext(
             component: "Test",
-            operation: "TestOp",
-            userId: nil,
-            sessionId: nil
+            function: "TestOp",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
 
         // When
@@ -62,9 +60,9 @@ final class ErrorRecoveryManagerTests: XCTestCase {
         let error = VoiceFlowError.microphonePermissionDenied
         let context = ErrorReporter.ErrorContext(
             component: "Audio",
-            operation: "StartRecording",
-            userId: nil,
-            sessionId: nil
+            function: "StartRecording",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
 
         // When
@@ -76,12 +74,12 @@ final class ErrorRecoveryManagerTests: XCTestCase {
 
     func testHandleErrorReportsToErrorReporter() async {
         // Given
-        let error = VoiceFlowError.audioConfigurationFailed
+        let error = VoiceFlowError.audioConfigurationFailed("Test configuration error")
         let context = ErrorReporter.ErrorContext(
             component: "Audio",
-            operation: "Configure",
-            userId: nil,
-            sessionId: nil
+            function: "Configure",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
 
         // When
@@ -115,7 +113,7 @@ final class ErrorRecoveryManagerTests: XCTestCase {
 
         // When - try to start another recovery immediately
         try? await Task.sleep(nanoseconds: 10_000_000) // Small delay
-        let secondAttempt = await errorRecoveryManager.attemptRecovery(for: error)
+        _ = await errorRecoveryManager.attemptRecovery(for: error)
 
         // Then - second attempt should fail or queue
         XCTAssertNotNil(errorRecoveryManager)
@@ -123,7 +121,7 @@ final class ErrorRecoveryManagerTests: XCTestCase {
 
     func testMaxRecoveryAttempts() async {
         // Given
-        let error = VoiceFlowError.audioConfigurationFailed
+        let error = VoiceFlowError.audioConfigurationFailed("Test error")
 
         // When - attempt recovery 4 times (max is 3)
         for _ in 0..<4 {
@@ -141,9 +139,9 @@ final class ErrorRecoveryManagerTests: XCTestCase {
         let error = VoiceFlowError.networkUnavailable
         let context = ErrorReporter.ErrorContext(
             component: "Network",
-            operation: "Connect",
-            userId: nil,
-            sessionId: nil
+            function: "Connect",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
         await errorRecoveryManager.handleError(error, context: context)
         XCTAssertNotNil(errorRecoveryManager.currentError)
@@ -209,7 +207,7 @@ final class ErrorRecoveryManagerTests: XCTestCase {
 
     func testGetRecoverySuggestionsForGenericError() async {
         // Given
-        let error = VoiceFlowError.unknown(NSError(domain: "Test", code: -1))
+        let error = VoiceFlowError.unexpectedError("Test error")
 
         // When
         let suggestions = errorRecoveryManager.getRecoverySuggestions(for: error)
@@ -293,9 +291,9 @@ final class ErrorRecoveryManagerTests: XCTestCase {
         let error = VoiceFlowError.networkTimeout
         let context = ErrorReporter.ErrorContext(
             component: "Network",
-            operation: "Connect",
-            userId: nil,
-            sessionId: nil
+            function: "Connect",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
 
         // When
@@ -311,9 +309,9 @@ final class ErrorRecoveryManagerTests: XCTestCase {
         let error = VoiceFlowError.microphonePermissionDenied
         let context = ErrorReporter.ErrorContext(
             component: "Audio",
-            operation: "StartRecording",
-            userId: nil,
-            sessionId: nil
+            function: "StartRecording",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
 
         // When
@@ -326,12 +324,12 @@ final class ErrorRecoveryManagerTests: XCTestCase {
 
     func testDismissActionAlwaysAvailable() async {
         // Given
-        let error = VoiceFlowError.unknown(NSError(domain: "Test", code: -1))
+        let error = VoiceFlowError.unexpectedError("Test error")
         let context = ErrorReporter.ErrorContext(
             component: "Test",
-            operation: "TestOp",
-            userId: nil,
-            sessionId: nil
+            function: "TestOp",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
 
         // When
@@ -369,13 +367,13 @@ final class ErrorRecoveryManagerTests: XCTestCase {
         let errors: [VoiceFlowError] = [
             .networkUnavailable,
             .microphonePermissionDenied,
-            .audioConfigurationFailed
+            .audioConfigurationFailed("Test error")
         ]
         let context = ErrorReporter.ErrorContext(
             component: "Test",
-            operation: "Multi",
-            userId: nil,
-            sessionId: nil
+            function: "Multi",
+            userID: nil,
+            sessionID: UUID().uuidString
         )
 
         // When
@@ -402,14 +400,28 @@ final class ErrorRecoveryManagerTests: XCTestCase {
 // MARK: - Mock Error Reporter
 
 @MainActor
-private class MockErrorReporter: ErrorReporter {
+private final class MockErrorReporter: ErrorReporting, @unchecked Sendable {
     var reportErrorCalled = false
     var lastError: VoiceFlowError?
-    var lastContext: ErrorContext?
+    var lastContext: ErrorReporter.ErrorContext?
 
-    override func reportError(_ error: VoiceFlowError, context: ErrorContext) async {
+    func reportError(
+        _ error: VoiceFlowError,
+        context: ErrorReporter.ErrorContext,
+        userActions: [String] = [],
+        stackTrace: String? = nil
+    ) async {
         reportErrorCalled = true
         lastError = error
         lastContext = context
+    }
+    
+    func reportError(
+        _ error: VoiceFlowError,
+        component: String,
+        function: String
+    ) async {
+        let context = ErrorReporter.ErrorContext(component: component, function: function)
+        await reportError(error, context: context, userActions: [], stackTrace: nil)
     }
 }

@@ -16,13 +16,13 @@ class AudioEngineTests: XCTestCase {
 
     var audioEngine: AudioManager!
     
-    @MainActor override func setUp() {
+    override func setUp() {
         super.setUp()
-        audioEngine = AudioManager()
+        // Initialize on MainActor when needed
     }
     
-    @MainActor override func tearDown() {
-        audioEngine.stopRecording()
+    override func tearDown() {
+        // Cleanup if needed
         audioEngine = nil
         super.tearDown()
     }
