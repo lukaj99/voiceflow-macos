@@ -297,19 +297,24 @@ extension DeepgramWebSocket: WebSocketDelegate {
     }
 
     nonisolated private func handleDiagnosticEvent(_ event: WebSocketEvent) {
+        // Extract event data before entering @MainActor context
+        let eventDescription: String? = switch event {
+        case .reconnectSuggested(let shouldReconnect):
+            "🔄 Reconnect suggested: \(shouldReconnect)"
+        case .viabilityChanged(let isViable):
+            "📡 Connection viability changed: \(isViable)"
+        case .ping(let data):
+            "🏓 Received ping: \(data?.count ?? 0) bytes"
+        case .pong(let data):
+            "🏓 Received pong: \(data?.count ?? 0) bytes"
+        default:
+            nil
+        }
+
         // Log diagnostic events without state changes
-        Task { @MainActor in
-            switch event {
-            case .reconnectSuggested(let shouldReconnect):
-                print("🔄 Reconnect suggested: \(shouldReconnect)")
-            case .viabilityChanged(let isViable):
-                print("📡 Connection viability changed: \(isViable)")
-            case .ping(let data):
-                print("🏓 Received ping: \(data?.count ?? 0) bytes")
-            case .pong(let data):
-                print("🏓 Received pong: \(data?.count ?? 0) bytes")
-            default:
-                break
+        if let eventDescription = eventDescription {
+            Task { @MainActor in
+                print(eventDescription)
             }
         }
     }
