@@ -21,6 +21,7 @@ public class DeepgramClient: NSObject, ObservableObject {
     private var webSocketManager: DeepgramWebSocket
     private var responseParser: DeepgramResponseParser
     private var apiKey: String?
+    private var lastAutoReconnectValue = false // Track user's autoReconnect preference
     private var connectionStartTime: Date?
     private var totalMessages = 0
 
@@ -90,14 +91,15 @@ public class DeepgramClient: NSObject, ObservableObject {
         currentModel = model
         print("🧠 Deepgram model changed to: \(model.displayName)")
 
-        // If currently connected, reconnect with new model
+        // If currently connected, reconnect with new model (preserve autoReconnect preference)
         if wasConnected, let apiKey = currentAPIKey {
             print("🔄 Reconnecting with new model...")
+            let shouldAutoReconnect = lastAutoReconnectValue // Preserve user's preference
             disconnect()
 
             // Small delay before reconnecting
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.connect(apiKey: apiKey, autoReconnect: true)
+                self.connect(apiKey: apiKey, autoReconnect: shouldAutoReconnect)
             }
         }
     }
@@ -135,6 +137,7 @@ public class DeepgramClient: NSObject, ObservableObject {
         print("🌐 Connecting to Deepgram with enhanced reliability...")
 
         self.apiKey = apiKey
+        self.lastAutoReconnectValue = autoReconnect // Store user's preference
         connectionError = nil
         connectionStartTime = Date()
         connectionAttempts += 1

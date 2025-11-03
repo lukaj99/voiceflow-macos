@@ -220,16 +220,17 @@ public struct HotkeyConfigurationView: View {
         return parts.joined(separator: "")
     }
 
+    // Static constant for O(1) lookup without repeated allocation
+    private static let displayNames: [Key: String] = [
+        .space: "Space", .r: "R", .return: "Return", .escape: "Escape",
+        .delete: "Delete", .tab: "Tab", .f1: "F1", .f2: "F2",
+        .f3: "F3", .f4: "F4", .f5: "F5", .f6: "F6",
+        .f7: "F7", .f8: "F8", .f9: "F9", .f10: "F10",
+        .f11: "F11", .f12: "F12"
+    ]
+
     private func keyDisplayName(_ key: Key) -> String {
-        // Use dictionary lookup for O(1) complexity reduction
-        let displayNames: [Key: String] = [
-            .space: "Space", .r: "R", .return: "Return", .escape: "Escape",
-            .delete: "Delete", .tab: "Tab", .f1: "F1", .f2: "F2",
-            .f3: "F3", .f4: "F4", .f5: "F5", .f6: "F6",
-            .f7: "F7", .f8: "F8", .f9: "F9", .f10: "F10",
-            .f11: "F11", .f12: "F12"
-        ]
-        return displayNames[key] ?? key.description
+        return Self.displayNames[key] ?? key.description
     }
 
     private func clearMessageAfterDelay() {
@@ -321,29 +322,27 @@ struct HotkeyRecorderView: View {
         }
     }
 
-    private func keyFromKeyCode(_ keyCode: UInt16) -> Key? {
-        // Use dictionary for O(1) lookup and low complexity
-        return keyCodeMapping[keyCode]
-    }
+    // Static constant for O(1) lookup without repeated allocation
+    private static let keyCodeMapping: [UInt16: Key] = [
+        // Special keys
+        49: .space, 36: .return, 53: .escape, 51: .delete, 48: .tab,
+        // Function keys
+        122: .f1, 120: .f2, 99: .f3, 118: .f4, 96: .f5, 97: .f6,
+        98: .f7, 100: .f8, 101: .f9, 109: .f10, 103: .f11, 111: .f12,
+        // Numbers
+        29: .zero, 18: .one, 19: .two, 20: .three, 21: .four,
+        23: .five, 22: .six, 26: .seven, 28: .eight, 25: .nine,
+        // Letters
+        0: .a, 11: .b, 8: .c, 2: .d, 14: .e, 3: .f, 5: .g, 4: .h,
+        34: .i, 38: .j, 40: .k, 37: .l, 46: .m, 45: .n, 31: .o, 35: .p,
+        12: .q, 15: .r, 1: .s, 17: .t, 32: .u, 9: .v, 13: .w, 7: .x,
+        16: .y, 6: .z,
+        // Arrow keys
+        123: .leftArrow, 124: .rightArrow, 125: .downArrow, 126: .upArrow
+    ]
 
-    private var keyCodeMapping: [UInt16: Key] {
-        [
-            // Special keys
-            49: .space, 36: .return, 53: .escape, 51: .delete, 48: .tab,
-            // Function keys
-            122: .f1, 120: .f2, 99: .f3, 118: .f4, 96: .f5, 97: .f6,
-            98: .f7, 100: .f8, 101: .f9, 109: .f10, 103: .f11, 111: .f12,
-            // Numbers
-            29: .zero, 18: .one, 19: .two, 20: .three, 21: .four,
-            23: .five, 22: .six, 26: .seven, 28: .eight, 25: .nine,
-            // Letters
-            0: .a, 11: .b, 8: .c, 2: .d, 14: .e, 3: .f, 5: .g, 4: .h,
-            34: .i, 38: .j, 40: .k, 37: .l, 46: .m, 45: .n, 31: .o, 35: .p,
-            12: .q, 15: .r, 1: .s, 17: .t, 32: .u, 9: .v, 13: .w, 7: .x,
-            16: .y, 6: .z,
-            // Arrow keys
-            123: .leftArrow, 124: .rightArrow, 125: .downArrow, 126: .upArrow
-        ]
+    private func keyFromKeyCode(_ keyCode: UInt16) -> Key? {
+        return Self.keyCodeMapping[keyCode]
     }
 }
 

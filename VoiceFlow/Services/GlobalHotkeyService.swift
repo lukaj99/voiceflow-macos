@@ -127,16 +127,17 @@ public class GlobalHotkeyService: ObservableObject {
 
     // MARK: - Helper Methods
 
+    // Static constant for O(1) lookup without repeated allocation
+    private static let displayNames: [Key: String] = [
+        .space: "Space", .r: "R", .return: "Return", .escape: "Escape",
+        .delete: "Delete", .tab: "Tab", .f1: "F1", .f2: "F2",
+        .f3: "F3", .f4: "F4", .f5: "F5", .f6: "F6",
+        .f7: "F7", .f8: "F8", .f9: "F9", .f10: "F10",
+        .f11: "F11", .f12: "F12"
+    ]
+
     private func keyDisplayName(_ key: Key) -> String {
-        // Use dictionary lookup for O(1) complexity reduction
-        let displayNames: [Key: String] = [
-            .space: "Space", .r: "R", .return: "Return", .escape: "Escape",
-            .delete: "Delete", .tab: "Tab", .f1: "F1", .f2: "F2",
-            .f3: "F3", .f4: "F4", .f5: "F5", .f6: "F6",
-            .f7: "F7", .f8: "F8", .f9: "F9", .f10: "F10",
-            .f11: "F11", .f12: "F12"
-        ]
-        return displayNames[key] ?? key.description
+        return Self.displayNames[key] ?? key.description
     }
 
     // MARK: - Private Methods

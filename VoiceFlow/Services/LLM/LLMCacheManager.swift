@@ -9,6 +9,7 @@ public class LLMCacheManager {
     // MARK: - Properties
 
     private var cache: [String: ProcessingResult] = [:]
+    private var keyOrder: [String] = [] // Maintains insertion order for FIFO eviction
     private let maxCacheSize: Int
 
     // MARK: - Initialization
@@ -33,7 +34,13 @@ public class LLMCacheManager {
 
     /// Store result in cache with automatic eviction
     public func set(key: String, result: ProcessingResult) {
+        // If key already exists, remove it from keyOrder first (we'll add it to end)
+        if cache[key] != nil {
+            keyOrder.removeAll { $0 == key }
+        }
+
         cache[key] = result
+        keyOrder.append(key) // Track insertion order
 
         // Evict oldest entry if cache exceeds max size
         if cache.count > maxCacheSize {
@@ -49,6 +56,7 @@ public class LLMCacheManager {
     /// Clear all cached results
     public func clear() {
         cache.removeAll()
+        keyOrder.removeAll()
         print("🧹 LLM cache cleared")
     }
 
@@ -68,11 +76,12 @@ public class LLMCacheManager {
 
     // MARK: - Private Methods
 
-    /// Evict oldest cache entry (simple FIFO strategy)
+    /// Evict oldest cache entry (true FIFO strategy using insertion order)
     private func evictOldest() {
-        guard let firstKey = cache.keys.first else { return }
-        cache.removeValue(forKey: firstKey)
-        print("🗑️ Evicted oldest cache entry")
+        guard let oldestKey = keyOrder.first else { return }
+        keyOrder.removeFirst() // Remove from order tracking
+        cache.removeValue(forKey: oldestKey) // Remove from cache
+        print("🗑️ Evicted oldest cache entry (key: \(oldestKey.prefix(20))...)")
     }
 }
 
