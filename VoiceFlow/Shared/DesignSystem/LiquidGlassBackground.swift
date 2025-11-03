@@ -3,20 +3,20 @@ import SwiftUI
 public struct LiquidGlassBackground: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var animationPhase: Double = 0
-    
+
     public init() {}
-    
+
     public var body: some View {
         ZStack {
             // Base gradient layer
             baseGradient
-            
+
             // Glass effect overlay
             glassOverlay
-            
+
             // Animated gradient blobs
             animatedBlobs
-            
+
             // Edge highlight
             edgeHighlight
         }
@@ -26,7 +26,7 @@ public struct LiquidGlassBackground: View {
             }
         }
     }
-    
+
     private var baseGradient: some View {
         LinearGradient(
             colors: colorScheme == .dark ?
@@ -36,13 +36,13 @@ public struct LiquidGlassBackground: View {
             endPoint: .bottomTrailing
         )
     }
-    
+
     private var glassOverlay: some View {
         Rectangle()
             .fill(.ultraThinMaterial)
             .opacity(0.6)
     }
-    
+
     private var animatedBlobs: some View {
         GeometryReader { geometry in
             ZStack {
@@ -66,7 +66,7 @@ public struct LiquidGlassBackground: View {
                         y: geometry.size.height * 0.4 + cos(animationPhase * .pi / 180) * 30
                     )
                     .blur(radius: 20)
-                
+
                 // Blob 2
                 Circle()
                     .fill(
@@ -87,7 +87,7 @@ public struct LiquidGlassBackground: View {
                         y: geometry.size.height * 0.6 + sin(animationPhase * .pi / 180) * 40
                     )
                     .blur(radius: 15)
-                
+
                 // Blob 3
                 Circle()
                     .fill(
@@ -111,7 +111,7 @@ public struct LiquidGlassBackground: View {
             }
         }
     }
-    
+
     private var edgeHighlight: some View {
         RoundedRectangle(cornerRadius: 12)
             .stroke(
@@ -148,12 +148,12 @@ extension Color {
         default:
             (a, r, g, b) = (1, 1, 1, 0)
         }
-        
+
         self.init(
             .sRGB,
             red: Double(r) / 255,
             green: Double(g) / 255,
-            blue:  Double(b) / 255,
+            blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
     }

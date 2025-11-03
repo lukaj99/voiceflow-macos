@@ -4,7 +4,7 @@ import SwiftUI
 public struct ContentView: View {
     @StateObject private var viewModel = SimpleTranscriptionViewModel()
     @State private var showSettings = false
-    
+
     public var body: some View {
         VStack(spacing: 20) {
             // Header
@@ -17,7 +17,7 @@ public struct ContentView: View {
                     .fontWeight(.bold)
             }
             .padding()
-            
+
             // Status and Controls
             VStack(spacing: 15) {
                 // Connection Status
@@ -30,20 +30,20 @@ public struct ContentView: View {
                         .foregroundColor(.secondary)
                 }
                 .animation(.easeInOut(duration: 0.3), value: viewModel.connectionStatus)
-                
+
                 // Audio Level Indicator
                 if viewModel.isRecording {
                     VStack {
                         Text("Audio Level")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         ProgressView(value: viewModel.audioLevel, total: 1.0)
                             .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                             .frame(height: 8)
                     }
                 }
-                
+
                 // Configuration Status
                 HStack {
                     Image(systemName: viewModel.isConfigured ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
@@ -52,13 +52,13 @@ public struct ContentView: View {
                         .font(.caption)
                         .foregroundColor(viewModel.isConfigured ? .secondary : .orange)
                 }
-                
+
                 // LLM Processing Status
                 if AppState.shared.llmPostProcessingEnabled {
                     HStack {
                         Image(systemName: AppState.shared.hasLLMProvidersConfigured ? "brain.head.profile.fill" : "brain.head.profile")
                             .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .purple : .gray)
-                        
+
                         if AppState.shared.isLLMProcessing {
                             HStack(spacing: 4) {
                                 ProgressView()
@@ -68,8 +68,8 @@ public struct ContentView: View {
                                     .foregroundColor(.purple)
                             }
                         } else {
-                            Text(AppState.shared.hasLLMProvidersConfigured ? 
-                                 "LLM enhancement ready" : 
+                            Text(AppState.shared.hasLLMProvidersConfigured ?
+                                 "LLM enhancement ready" :
                                  "LLM enhancement requires API key")
                                 .font(.caption)
                                 .foregroundColor(AppState.shared.hasLLMProvidersConfigured ? .purple : .gray)
@@ -77,7 +77,7 @@ public struct ContentView: View {
                     }
                     .animation(.easeInOut(duration: 0.3), value: AppState.shared.isLLMProcessing)
                 }
-                
+
                 // Main Controls
                 HStack(spacing: 20) {
                     // Settings Button
@@ -86,7 +86,7 @@ public struct ContentView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(viewModel.isRecording)
-                    
+
                     // Start/Stop Button
                     Button(action: {
                         Task {
@@ -105,7 +105,7 @@ public struct ContentView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .disabled(!viewModel.isConfigured)
-                    
+
                     // Clear Button
                     Button("Clear") {
                         viewModel.clearTranscription()
@@ -113,14 +113,14 @@ public struct ContentView: View {
                     .buttonStyle(.bordered)
                     .disabled(viewModel.isRecording)
                 }
-                
+
                 // API Key Configuration prompt (if not configured)
                 if !viewModel.isConfigured {
                     VStack(spacing: 8) {
                         Text("API key required for transcription")
                             .font(.caption)
                             .foregroundColor(.orange)
-                        
+
                         Button("Configure API Key") {
                             showSettings = true
                         }
@@ -130,7 +130,7 @@ public struct ContentView: View {
                     }
                 }
             }
-            
+
             // Error Display
             if let errorMessage = viewModel.errorMessage {
                 HStack {
@@ -142,7 +142,7 @@ public struct ContentView: View {
                 }
                 .padding(.horizontal)
             }
-            
+
             // LLM Error Display
             if let llmError = AppState.shared.llmProcessingError {
                 HStack {
@@ -151,7 +151,7 @@ public struct ContentView: View {
                     Text("LLM Enhancement Error: \(llmError)")
                         .font(.caption)
                         .foregroundColor(.red)
-                    
+
                     Button("Dismiss") {
                         AppState.shared.setLLMProcessingError(nil)
                     }
@@ -161,13 +161,13 @@ public struct ContentView: View {
                 }
                 .padding(.horizontal)
             }
-            
+
             // Transcription Display
             VStack(alignment: .leading, spacing: 8) {
                 Text("Transcription:")
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 ScrollView {
                     Text(viewModel.transcriptionText.isEmpty ? "Transcribed text will appear here..." : viewModel.transcriptionText)
                         .font(.body)
@@ -184,7 +184,7 @@ public struct ContentView: View {
                 )
                 .frame(minHeight: 200)
             }
-            
+
             Spacer()
         }
         .padding()
@@ -194,7 +194,7 @@ public struct ContentView: View {
                 .frame(width: 500, height: 600)
         }
     }
-    
+
     /// Get color for connection status
     private func connectionStatusColor(for status: String) -> Color {
         switch status {

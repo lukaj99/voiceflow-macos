@@ -3,19 +3,19 @@ import SwiftUI
 /// Simplified settings view for debugging
 public struct SimpleSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    
+
     public init() {}
-    
+
     public var body: some View {
         VStack(spacing: 20) {
             Text("VoiceFlow Settings")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            
+
             VStack(alignment: .leading, spacing: 16) {
                 Text("API Configuration")
                     .font(.headline)
-                
+
                 HStack {
                     Image(systemName: "key.fill")
                         .foregroundColor(.blue)
@@ -28,10 +28,10 @@ public struct SimpleSettingsView: View {
                 .padding()
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
-                
+
                 Text("Transcription Model")
                     .font(.headline)
-                
+
                 HStack {
                     Image(systemName: "brain")
                         .foregroundColor(.purple)
@@ -41,10 +41,10 @@ public struct SimpleSettingsView: View {
                 .padding()
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
-                
+
                 Text("Features")
                     .font(.headline)
-                
+
                 HStack {
                     Image(systemName: "globe")
                         .foregroundColor(.orange)
@@ -58,9 +58,9 @@ public struct SimpleSettingsView: View {
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
             }
-            
+
             Spacer()
-            
+
             Button("Done") {
                 dismiss()
             }

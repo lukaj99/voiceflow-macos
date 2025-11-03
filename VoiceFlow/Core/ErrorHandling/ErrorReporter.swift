@@ -4,16 +4,16 @@ import OSLog
 /// Centralized error reporting and logging system
 /// Single Responsibility: Error collection, logging, and reporting
 public actor ErrorReporter {
-    
+
     // MARK: - Properties
-    
+
     private let logger = Logger(subsystem: "com.voiceflow.app", category: "ErrorReporter")
     private var errorHistory: [ErrorReport] = []
     private var errorStatistics: ErrorStatistics = ErrorStatistics()
     private let maxHistorySize = 1000
-    
+
     // MARK: - Types
-    
+
     public struct ErrorReport: Sendable, Identifiable {
         public let id = UUID()
         public let error: VoiceFlowError
@@ -22,7 +22,7 @@ public actor ErrorReporter {
         public let stackTrace: String?
         public let userActions: [String]
         public let deviceInfo: DeviceInfo
-        
+
         public init(
             error: VoiceFlowError,
             timestamp: Date = Date(),
@@ -39,14 +39,14 @@ public actor ErrorReporter {
             self.deviceInfo = deviceInfo
         }
     }
-    
+
     public struct ErrorContext: Sendable {
         public let component: String
         public let function: String
         public let userID: String?
         public let sessionID: String
         public let additionalInfo: [String: String]
-        
+
         public init(
             component: String,
             function: String = #function,
@@ -61,14 +61,14 @@ public actor ErrorReporter {
             self.additionalInfo = additionalInfo
         }
     }
-    
+
     public struct DeviceInfo: Sendable {
         public let deviceModel: String
         public let osVersion: String
         public let appVersion: String
         public let language: String
         public let timezone: String
-        
+
         public static var current: DeviceInfo {
             DeviceInfo(
                 deviceModel: ProcessInfo.processInfo.hostName,
@@ -79,49 +79,49 @@ public actor ErrorReporter {
             )
         }
     }
-    
+
     public struct ErrorStatistics: Sendable {
         public var totalErrors: Int = 0
         public var errorsByCategory: [ErrorCategory: Int] = [:]
         public var errorsBySeverity: [ErrorSeverity: Int] = [:]
         public var lastReportTime: Date?
         public var sessionErrorCount: Int = 0
-        
+
         public mutating func recordError(_ error: VoiceFlowError) {
             totalErrors += 1
             sessionErrorCount += 1
             lastReportTime = Date()
-            
+
             errorsByCategory[error.category, default: 0] += 1
             errorsBySeverity[error.severity, default: 0] += 1
         }
-        
+
         public var errorRate: Double {
             // Calculate errors per hour for current session
             guard let lastReport = lastReportTime else { return 0.0 }
             let sessionDuration = Date().timeIntervalSince(lastReport) / 3600.0 // Convert to hours
             return sessionDuration > 0 ? Double(sessionErrorCount) / sessionDuration : 0.0
         }
-        
+
         public var mostCommonCategory: ErrorCategory? {
             errorsByCategory.max { $0.value < $1.value }?.key
         }
-        
+
         public var criticalErrorCount: Int {
             errorsBySeverity[.critical] ?? 0
         }
     }
-    
+
     // MARK: - Singleton Instance
-    
+
     public static let shared = ErrorReporter()
-    
+
     private init() {
         logger.info("🚨 ErrorReporter initialized")
     }
-    
+
     // MARK: - Public Interface
-    
+
     /// Report an error with context
     public func reportError(
         _ error: VoiceFlowError,
@@ -135,27 +135,27 @@ public actor ErrorReporter {
             stackTrace: stackTrace,
             userActions: userActions
         )
-        
+
         // Add to history
         errorHistory.append(report)
         if errorHistory.count > maxHistorySize {
             errorHistory.removeFirst(errorHistory.count - maxHistorySize)
         }
-        
+
         // Update statistics
         errorStatistics.recordError(error)
-        
+
         // Log the error
         logError(report)
-        
+
         // Handle critical errors immediately
         if error.severity == .critical {
             handleCriticalError(report)
         }
-        
+
         logger.info("🚨 Error reported: \(error.category.rawValue) - \(error.errorDescription ?? "Unknown error")")
     }
-    
+
     /// Report an error with minimal context (convenience method)
     public func reportError(
         _ error: VoiceFlowError,
@@ -165,17 +165,17 @@ public actor ErrorReporter {
         let context = ErrorContext(component: component, function: function)
         reportError(error, context: context)
     }
-    
+
     /// Get error statistics
     public func getStatistics() -> ErrorStatistics {
         return errorStatistics
     }
-    
+
     /// Get recent error reports
     public func getRecentErrors(limit: Int = 50) -> [ErrorReport] {
         return Array(errorHistory.suffix(limit))
     }
-    
+
     /// Get errors filtered by category
     public func getErrors(category: ErrorCategory, limit: Int = 50) -> [ErrorReport] {
         return errorHistory
@@ -183,7 +183,7 @@ public actor ErrorReporter {
             .suffix(limit)
             .reversed()
     }
-    
+
     /// Get errors filtered by severity
     public func getErrors(severity: ErrorSeverity, limit: Int = 50) -> [ErrorReport] {
         return errorHistory
@@ -191,19 +191,19 @@ public actor ErrorReporter {
             .suffix(limit)
             .reversed()
     }
-    
+
     /// Clear error history
     public func clearHistory() {
         errorHistory.removeAll()
         errorStatistics = ErrorStatistics()
         logger.info("🚨 Error history cleared")
     }
-    
+
     /// Generate error report for debugging
     public func generateErrorReport() -> ErrorReportSummary {
         let recentErrors = Array(errorHistory.suffix(10))
         let criticalErrors = errorHistory.filter { $0.error.severity == .critical }
-        
+
         return ErrorReportSummary(
             totalErrors: errorStatistics.totalErrors,
             sessionErrors: errorStatistics.sessionErrorCount,
@@ -214,11 +214,11 @@ public actor ErrorReporter {
             reportGenerated: Date()
         )
     }
-    
+
     /// Export error data for support
     public func exportErrorData() -> Data? {
         let report = generateErrorReport()
-        
+
         do {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
@@ -229,9 +229,9 @@ public actor ErrorReporter {
             return nil
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func logError(_ report: ErrorReport) {
         let logLevel: OSLogType = {
             switch report.error.severity {
@@ -241,7 +241,7 @@ public actor ErrorReporter {
             case .low: return .info
             }
         }()
-        
+
         logger.log(
             level: logLevel,
             """
@@ -254,27 +254,27 @@ public actor ErrorReporter {
             Session: \(report.context.sessionID)
             """
         )
-        
+
         // Log stack trace if available
         if let stackTrace = report.stackTrace {
             logger.debug("🚨 Stack trace: \(stackTrace)")
         }
-        
+
         // Log user actions if any
         if !report.userActions.isEmpty {
             logger.debug("🚨 User actions: \(report.userActions.joined(separator: " -> "))")
         }
     }
-    
+
     private func handleCriticalError(_ report: ErrorReport) {
         logger.fault("🚨 CRITICAL ERROR DETECTED: \(report.error.errorDescription ?? "Unknown critical error")")
-        
+
         // For critical errors, we might want to:
         // 1. Send immediate telemetry (if configured)
         // 2. Create crash reports
         // 3. Trigger automatic recovery procedures
         // 4. Alert system administrators (in enterprise versions)
-        
+
         print("🚨 CRITICAL ERROR: \(report.error.errorDescription ?? "Unknown")")
         print("🚨 Component: \(report.context.component)")
         print("🚨 Function: \(report.context.function)")
@@ -292,7 +292,7 @@ public struct ErrorReportSummary: Codable, Sendable {
     public let criticalErrors: [ErrorReporter.ErrorReport]
     public let deviceInfo: ErrorReporter.DeviceInfo
     public let reportGenerated: Date
-    
+
     public init(
         totalErrors: Int,
         sessionErrors: Int,
@@ -318,7 +318,7 @@ extension ErrorReporter.ErrorReport: Codable {
     enum CodingKeys: String, CodingKey {
         case id, error, timestamp, context, stackTrace, userActions, deviceInfo
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -329,20 +329,20 @@ extension ErrorReporter.ErrorReport: Codable {
         try container.encode(userActions, forKey: .userActions)
         try container.encode(deviceInfo, forKey: .deviceInfo)
     }
-    
+
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let _ = try container.decode(UUID.self, forKey: .id)
+        _ = try container.decode(UUID.self, forKey: .id)
         let errorDescription = try container.decode(String.self, forKey: .error)
         let timestamp = try container.decode(Date.self, forKey: .timestamp)
         let context = try container.decode(ErrorReporter.ErrorContext.self, forKey: .context)
         let stackTrace = try container.decodeIfPresent(String.self, forKey: .stackTrace)
         let userActions = try container.decode([String].self, forKey: .userActions)
         let deviceInfo = try container.decode(ErrorReporter.DeviceInfo.self, forKey: .deviceInfo)
-        
+
         // Create a generic unexpected error since we can't reconstruct the original VoiceFlowError
         let error = VoiceFlowError.unexpectedError(errorDescription)
-        
+
         self.init(
             error: error,
             timestamp: timestamp,
@@ -362,14 +362,14 @@ extension ErrorReporter.ErrorStatistics: Codable {
     enum CodingKeys: String, CodingKey {
         case totalErrors, sessionErrorCount, lastReportTime
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(totalErrors, forKey: .totalErrors)
         try container.encode(sessionErrorCount, forKey: .sessionErrorCount)
         try container.encodeIfPresent(lastReportTime, forKey: .lastReportTime)
     }
-    
+
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.totalErrors = try container.decode(Int.self, forKey: .totalErrors)

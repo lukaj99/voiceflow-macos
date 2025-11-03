@@ -99,13 +99,13 @@ extension Task {
 @MainActor
 public class ErrorAlertManager: ObservableObject {
     @Published public var currentAlert: ErrorAlert?
-    
+
     public struct ErrorAlert: Identifiable {
         public let id = UUID()
         public let error: VoiceFlowError
         public let primaryAction: (() -> Void)?
         public let secondaryAction: (() -> Void)?
-        
+
         public init(
             error: VoiceFlowError,
             primaryAction: (() -> Void)? = nil,
@@ -116,7 +116,7 @@ public class ErrorAlertManager: ObservableObject {
             self.secondaryAction = secondaryAction
         }
     }
-    
+
     public func showError(
         _ error: VoiceFlowError,
         primaryAction: (() -> Void)? = nil,
@@ -128,7 +128,7 @@ public class ErrorAlertManager: ObservableObject {
             secondaryAction: secondaryAction
         )
     }
-    
+
     public func dismissAlert() {
         currentAlert = nil
     }
@@ -413,7 +413,7 @@ public struct ErrorRecoveryView: View {
 public protocol ErrorHandlingViewModel: AnyObject {
     var errorAlertManager: ErrorAlertManager { get }
     var recoveryManager: ErrorRecoveryManager { get }
-    
+
     func handleError(_ error: VoiceFlowError, component: String, function: String)
 }
 
@@ -439,7 +439,7 @@ extension ErrorHandlingViewModel {
     /// Attempt error recovery in a task
     private func attemptErrorRecovery(for error: VoiceFlowError) {
         Task {
-            let _ = await self.recoveryManager.attemptRecovery(for: error)
+            _ = await self.recoveryManager.attemptRecovery(for: error)
         }
     }
 
@@ -453,14 +453,14 @@ extension ErrorHandlingViewModel {
 
 /// Convenience functions for common error scenarios
 public struct ErrorHelper {
-    
+
     /// Handle audio permission errors
     public static func handleAudioPermissionError() -> VoiceFlowError {
         return .microphonePermissionDenied
     }
-    
+
     /// Handle network connectivity errors
-    public static func handleNetworkError(_ error: any Error) -> VoiceFlowError {
+    public static func handleNetworkError(_ error: some Error) -> VoiceFlowError {
         guard let urlError = error as? URLError else {
             return .networkUnavailable
         }
@@ -482,7 +482,7 @@ public struct ErrorHelper {
     }
 
     /// Handle file system errors
-    public static func handleFileSystemError(_ error: any Error, filename: String) -> VoiceFlowError {
+    public static func handleFileSystemError(_ error: some Error, filename: String) -> VoiceFlowError {
         guard let nsError = error as NSError? else {
             return .fileCorrupted(filename)
         }
@@ -500,7 +500,7 @@ public struct ErrorHelper {
             return .fileCorrupted(filename)
         }
     }
-    
+
     /// Handle API errors with status codes
     public static func handleAPIError(statusCode: Int, message: String) -> VoiceFlowError {
         switch statusCode {
