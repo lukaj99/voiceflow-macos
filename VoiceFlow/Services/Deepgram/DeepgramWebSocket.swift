@@ -267,104 +267,159 @@ public class DeepgramWebSocket: NSObject {
 extension DeepgramWebSocket: WebSocketDelegate {
 
     nonisolated public func didReceive(event: WebSocketEvent, client: any WebSocketClient) {
+        // Group related events to reduce complexity
+        handleWebSocketEvent(event)
+    }
+
+    nonisolated private func handleWebSocketEvent(_ event: WebSocketEvent) {
         switch event {
         case .connected:
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                print("✅ WebSocket connected with enhanced monitoring")
-
-                self.isConnected = true
-                self.lastMessageReceived = Date()
-                self.onConnectionStateChange?(.connected)
-
-                if self.currentRetryAttempt > 0 {
-                    print("🎉 Connection recovered after \(self.currentRetryAttempt) attempts")
-                    self.currentRetryAttempt = 0
-                }
-
-                self.setupHealthMonitoring()
-            }
-
+            handleConnectedEvent()
         case .disconnected(let reason, let code):
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                print("🔌 WebSocket disconnected: \(reason) with code: \(code)")
-
-                self.isConnected = false
-
-                if code == 1000 {
-                    self.onConnectionStateChange?(.disconnected)
-                } else {
-                    let errorMsg = "Unexpected disconnection: \(reason) (code: \(code))"
-                    print("⚠️ \(errorMsg)")
-
-                    if self.shouldAutoReconnect {
-                        self.handleConnectionFailure(errorMsg)
-                    } else {
-                        self.onConnectionStateChange?(.error)
-                        self.onError?(errorMsg)
-                    }
-                }
-            }
-
+            handleDisconnectedEvent(reason: reason, code: code)
         case .text(let string):
-            Task { @MainActor [weak self] in
-                self?.updateLastMessageReceived()
-                self?.onMessageReceived?(string)
-            }
-
+            handleTextEvent(string: string)
         case .binary(let data):
-            Task { @MainActor in
-                print("📦 Received unexpected binary data: \(data.count) bytes")
+            handleBinaryEvent(data: data)
+        case .error(let error):
+            handleErrorEvent(error: error)
+        case .cancelled, .peerClosed:
+            handleConnectionClosedEvent()
+        case .reconnectSuggested, .viabilityChanged, .ping, .pong:
+            handleDiagnosticEvent(event)
+        }
+    }
+
+    nonisolated private func handleConnectionClosedEvent() {
+        Task { @MainActor [weak self] in
+            self?.isConnected = false
+        }
+    }
+
+    nonisolated private func handleDiagnosticEvent(_ event: WebSocketEvent) {
+        // Log diagnostic events without state changes
+        Task { @MainActor in
+            switch event {
+            case .reconnectSuggested(let shouldReconnect):
+                print("🔄 Reconnect suggested: \(shouldReconnect)")
+            case .viabilityChanged(let isViable):
+                print("📡 Connection viability changed: \(isViable)")
+            case .ping(let data):
+                print("🏓 Received ping: \(data?.count ?? 0) bytes")
+            case .pong(let data):
+                print("🏓 Received pong: \(data?.count ?? 0) bytes")
+            default:
+                break
+            }
+        }
+    }
+
+    nonisolated private func handleConnectedEvent() {
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            print("✅ WebSocket connected with enhanced monitoring")
+
+            self.isConnected = true
+            self.lastMessageReceived = Date()
+            self.onConnectionStateChange?(.connected)
+
+            if self.currentRetryAttempt > 0 {
+                print("🎉 Connection recovered after \(self.currentRetryAttempt) attempts")
+                self.currentRetryAttempt = 0
             }
 
-        case .error(let error):
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                let errorMsg = error?.localizedDescription ?? "Unknown WebSocket error"
-                print("❌ WebSocket error: \(errorMsg)")
+            self.setupHealthMonitoring()
+        }
+    }
 
-                self.isConnected = false
+    nonisolated private func handleDisconnectedEvent(reason: String, code: UInt16) {
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            print("🔌 WebSocket disconnected: \(reason) with code: \(code)")
+
+            self.isConnected = false
+
+            if code == 1000 {
+                self.onConnectionStateChange?(.disconnected)
+            } else {
+                let errorMsg = "Unexpected disconnection: \(reason) (code: \(code))"
+                print("⚠️ \(errorMsg)")
 
                 if self.shouldAutoReconnect {
-                    self.handleConnectionFailure("WebSocket error: \(errorMsg)")
+                    self.handleConnectionFailure(errorMsg)
                 } else {
                     self.onConnectionStateChange?(.error)
                     self.onError?(errorMsg)
                 }
             }
+        }
+    }
 
-        case .cancelled:
-            Task { @MainActor [weak self] in
-                print("🚫 WebSocket cancelled")
-                self?.isConnected = false
-            }
+    nonisolated private func handleTextEvent(string: String) {
+        Task { @MainActor [weak self] in
+            self?.updateLastMessageReceived()
+            self?.onMessageReceived?(string)
+        }
+    }
 
-        case .reconnectSuggested(let shouldReconnect):
-            Task { @MainActor in
-                print("🔄 Reconnect suggested: \(shouldReconnect)")
-            }
+    nonisolated private func handleBinaryEvent(data: Data) {
+        Task { @MainActor in
+            print("📦 Received unexpected binary data: \(data.count) bytes")
+        }
+    }
 
-        case .viabilityChanged(let isViable):
-            Task { @MainActor in
-                print("📡 Connection viability changed: \(isViable)")
-            }
+    nonisolated private func handleErrorEvent(error: (any Error)?) {
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            let errorMsg = error?.localizedDescription ?? "Unknown WebSocket error"
+            print("❌ WebSocket error: \(errorMsg)")
 
-        case .peerClosed:
-            Task { @MainActor [weak self] in
-                print("👋 WebSocket peer closed")
-                self?.isConnected = false
-            }
+            self.isConnected = false
 
-        case .ping(let data):
-            Task { @MainActor in
-                print("🏓 Received ping: \(data?.count ?? 0) bytes")
+            if self.shouldAutoReconnect {
+                self.handleConnectionFailure("WebSocket error: \(errorMsg)")
+            } else {
+                self.onConnectionStateChange?(.error)
+                self.onError?(errorMsg)
             }
+        }
+    }
 
-        case .pong(let data):
-            Task { @MainActor in
-                print("🏓 Received pong: \(data?.count ?? 0) bytes")
-            }
+    nonisolated private func handleCancelledEvent() {
+        Task { @MainActor [weak self] in
+            print("🚫 WebSocket cancelled")
+            self?.isConnected = false
+        }
+    }
+
+    nonisolated private func handleReconnectSuggestedEvent(shouldReconnect: Bool) {
+        Task { @MainActor in
+            print("🔄 Reconnect suggested: \(shouldReconnect)")
+        }
+    }
+
+    nonisolated private func handleViabilityChangedEvent(isViable: Bool) {
+        Task { @MainActor in
+            print("📡 Connection viability changed: \(isViable)")
+        }
+    }
+
+    nonisolated private func handlePeerClosedEvent() {
+        Task { @MainActor [weak self] in
+            print("👋 WebSocket peer closed")
+            self?.isConnected = false
+        }
+    }
+
+    nonisolated private func handlePingEvent(data: Data?) {
+        Task { @MainActor in
+            print("🏓 Received ping: \(data?.count ?? 0) bytes")
+        }
+    }
+
+    nonisolated private func handlePongEvent(data: Data?) {
+        Task { @MainActor in
+            print("🏓 Received pong: \(data?.count ?? 0) bytes")
         }
     }
 }

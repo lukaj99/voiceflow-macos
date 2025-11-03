@@ -221,27 +221,15 @@ public struct HotkeyConfigurationView: View {
     }
 
     private func keyDisplayName(_ key: Key) -> String {
-        switch key {
-        case .space: return "Space"
-        case .r: return "R"
-        case .return: return "Return"
-        case .escape: return "Escape"
-        case .delete: return "Delete"
-        case .tab: return "Tab"
-        case .f1: return "F1"
-        case .f2: return "F2"
-        case .f3: return "F3"
-        case .f4: return "F4"
-        case .f5: return "F5"
-        case .f6: return "F6"
-        case .f7: return "F7"
-        case .f8: return "F8"
-        case .f9: return "F9"
-        case .f10: return "F10"
-        case .f11: return "F11"
-        case .f12: return "F12"
-        default: return key.description
-        }
+        // Use dictionary lookup for O(1) complexity reduction
+        let displayNames: [Key: String] = [
+            .space: "Space", .r: "R", .return: "Return", .escape: "Escape",
+            .delete: "Delete", .tab: "Tab", .f1: "F1", .f2: "F2",
+            .f3: "F3", .f4: "F4", .f5: "F5", .f6: "F6",
+            .f7: "F7", .f8: "F8", .f9: "F9", .f10: "F10",
+            .f11: "F11", .f12: "F12"
+        ]
+        return displayNames[key] ?? key.description
     }
 
     private func clearMessageAfterDelay() {
@@ -334,77 +322,28 @@ struct HotkeyRecorderView: View {
     }
 
     private func keyFromKeyCode(_ keyCode: UInt16) -> Key? {
-        // Map key codes to HotKey.Key values
-        switch keyCode {
-        // Special keys
-        case 49: return .space
-        case 36: return .return
-        case 53: return .escape
-        case 51: return .delete
-        case 48: return .tab
+        // Use dictionary for O(1) lookup and low complexity
+        return keyCodeMapping[keyCode]
+    }
 
-        // Function keys
-        case 122: return .f1
-        case 120: return .f2
-        case 99: return .f3
-        case 118: return .f4
-        case 96: return .f5
-        case 97: return .f6
-        case 98: return .f7
-        case 100: return .f8
-        case 101: return .f9
-        case 109: return .f10
-        case 103: return .f11
-        case 111: return .f12
-
-        // Numbers
-        case 29: return .zero
-        case 18: return .one
-        case 19: return .two
-        case 20: return .three
-        case 21: return .four
-        case 23: return .five
-        case 22: return .six
-        case 26: return .seven
-        case 28: return .eight
-        case 25: return .nine
-
-        // Letters
-        case 0: return .a
-        case 11: return .b
-        case 8: return .c
-        case 2: return .d
-        case 14: return .e
-        case 3: return .f
-        case 5: return .g
-        case 4: return .h
-        case 34: return .i
-        case 38: return .j
-        case 40: return .k
-        case 37: return .l
-        case 46: return .m
-        case 45: return .n
-        case 31: return .o
-        case 35: return .p
-        case 12: return .q
-        case 15: return .r
-        case 1: return .s
-        case 17: return .t
-        case 32: return .u
-        case 9: return .v
-        case 13: return .w
-        case 7: return .x
-        case 16: return .y
-        case 6: return .z
-
-        // Arrow keys
-        case 123: return .leftArrow
-        case 124: return .rightArrow
-        case 125: return .downArrow
-        case 126: return .upArrow
-
-        default: return nil
-        }
+    private var keyCodeMapping: [UInt16: Key] {
+        [
+            // Special keys
+            49: .space, 36: .return, 53: .escape, 51: .delete, 48: .tab,
+            // Function keys
+            122: .f1, 120: .f2, 99: .f3, 118: .f4, 96: .f5, 97: .f6,
+            98: .f7, 100: .f8, 101: .f9, 109: .f10, 103: .f11, 111: .f12,
+            // Numbers
+            29: .zero, 18: .one, 19: .two, 20: .three, 21: .four,
+            23: .five, 22: .six, 26: .seven, 28: .eight, 25: .nine,
+            // Letters
+            0: .a, 11: .b, 8: .c, 2: .d, 14: .e, 3: .f, 5: .g, 4: .h,
+            34: .i, 38: .j, 40: .k, 37: .l, 46: .m, 45: .n, 31: .o, 35: .p,
+            12: .q, 15: .r, 1: .s, 17: .t, 32: .u, 9: .v, 13: .w, 7: .x,
+            16: .y, 6: .z,
+            // Arrow keys
+            123: .leftArrow, 124: .rightArrow, 125: .downArrow, 126: .upArrow
+        ]
     }
 }
 

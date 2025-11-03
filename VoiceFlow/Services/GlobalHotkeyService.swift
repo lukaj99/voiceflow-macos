@@ -128,27 +128,15 @@ public class GlobalHotkeyService: ObservableObject {
     // MARK: - Helper Methods
 
     private func keyDisplayName(_ key: Key) -> String {
-        switch key {
-        case .space: return "Space"
-        case .r: return "R"
-        case .return: return "Return"
-        case .escape: return "Escape"
-        case .delete: return "Delete"
-        case .tab: return "Tab"
-        case .f1: return "F1"
-        case .f2: return "F2"
-        case .f3: return "F3"
-        case .f4: return "F4"
-        case .f5: return "F5"
-        case .f6: return "F6"
-        case .f7: return "F7"
-        case .f8: return "F8"
-        case .f9: return "F9"
-        case .f10: return "F10"
-        case .f11: return "F11"
-        case .f12: return "F12"
-        default: return key.description
-        }
+        // Use dictionary lookup for O(1) complexity reduction
+        let displayNames: [Key: String] = [
+            .space: "Space", .r: "R", .return: "Return", .escape: "Escape",
+            .delete: "Delete", .tab: "Tab", .f1: "F1", .f2: "F2",
+            .f3: "F3", .f4: "F4", .f5: "F5", .f6: "F6",
+            .f7: "F7", .f8: "F8", .f9: "F9", .f10: "F10",
+            .f11: "F11", .f12: "F12"
+        ]
+        return displayNames[key] ?? key.description
     }
 
     // MARK: - Private Methods
