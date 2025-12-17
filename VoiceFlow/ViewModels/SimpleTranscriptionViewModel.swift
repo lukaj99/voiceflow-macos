@@ -1,3 +1,4 @@
+import Dependencies
 import Foundation
 import Combine
 
@@ -113,10 +114,15 @@ public class SimpleTranscriptionViewModel: ObservableObject {
     private var medicalTermsDetected = 0
     private var totalWordsProcessed = 0
 
+    // MARK: - Dependencies
+
+    /// Injected credential client for secure API key management.
+    /// Uses swift-dependencies for testable dependency injection.
+    @Dependency(\.credentialClient) var credentialClient
+
     // MARK: - Private Properties
     let audioManager = AudioManager()
     let deepgramClient = DeepgramClient()
-    let credentialService = SecureCredentialService()
     let globalTextInputService = GlobalTextInputService()
     var cancellables = Set<AnyCancellable>()
 
@@ -199,11 +205,14 @@ public class SimpleTranscriptionViewModel: ObservableObject {
         hasInsertedGlobalText = false
 
         do {
-            // Retrieve API key from secure storage
-            let apiKey = try await credentialService.getDeepgramAPIKey()
+            // Retrieve API key from secure storage using injected client
+            guard let apiKey = try await credentialClient.getAPIKey(.deepgram) else {
+                errorMessage = "No API key found. Please configure your Deepgram API key."
+                return
+            }
 
-            // Validate API key before use
-            guard await credentialService.validateCredential(apiKey, for: .deepgramAPIKey) else {
+            // Validate API key format before use
+            guard credentialClient.validateKeyFormat(apiKey, .deepgram) else {
                 errorMessage = "Invalid API key format. Please reconfigure."
                 return
             }
@@ -388,23 +397,21 @@ public class SimpleTranscriptionViewModel: ObservableObject {
     public func reconfigureCredentials(newAPIKey: String? = nil) async {
         do {
             if let newKey = newAPIKey {
-                // Store new API key
-                try await credentialService.storeDeepgramAPIKey(newKey)
+                // Store new API key using injected client
+                try await credentialClient.setAPIKey(newKey, .deepgram)
                 print("🔐 New API key configured")
             } else {
                 // Try to configure from environment, otherwise user must provide key
                 do {
-                    try await credentialService.configureFromEnvironment()
+                    try await credentialClient.configureFromEnvironment()
                     print("🔐 Credentials reconfigured from environment")
                 } catch {
-                    throw SecureCredentialService.CredentialError.keyNotFound(
-                        "No API key provided and none found in environment. Please provide an API key."
-                    )
+                    throw CredentialError.notFound(.deepgram)
                 }
             }
 
             // Update configuration status
-            isConfigured = await credentialService.hasDeepgramAPIKey()
+            isConfigured = await credentialClient.hasAPIKey(.deepgram)
 
             if isConfigured {
                 errorMessage = nil
@@ -420,17 +427,20 @@ public class SimpleTranscriptionViewModel: ObservableObject {
     /// Check credential status
     public func checkCredentialStatus() async {
         do {
-            let hasKey = await credentialService.hasDeepgramAPIKey()
+            let hasKey = await credentialClient.hasAPIKey(.deepgram)
 
             if hasKey {
                 // Validate the stored key
-                let apiKey = try await credentialService.getDeepgramAPIKey()
-                let isValid = await credentialService.validateCredential(apiKey, for: .deepgramAPIKey)
+                if let apiKey = try await credentialClient.getAPIKey(.deepgram) {
+                    let isValid = credentialClient.validateKeyFormat(apiKey, .deepgram)
+                    isConfigured = isValid
 
-                isConfigured = isValid
-
-                if !isValid {
-                    errorMessage = "Stored API key is invalid. Please reconfigure."
+                    if !isValid {
+                        errorMessage = "Stored API key is invalid. Please reconfigure."
+                    }
+                } else {
+                    isConfigured = false
+                    errorMessage = "No API key configured."
                 }
             } else {
                 isConfigured = false
@@ -445,7 +455,7 @@ public class SimpleTranscriptionViewModel: ObservableObject {
 
     /// Perform keychain health check
     public func performHealthCheck() async -> Bool {
-        let isHealthy = await credentialService.performHealthCheck()
+        let isHealthy = await credentialClient.performHealthCheck()
 
         if !isHealthy {
             errorMessage = "Keychain access issue detected. Please check app permissions."

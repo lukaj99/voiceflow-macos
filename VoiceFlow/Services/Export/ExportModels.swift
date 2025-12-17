@@ -20,7 +20,7 @@ import Foundation
 /// ```
 ///
 /// - SeeAlso: `ExportManager`, `ExportConfiguration`
-public enum ExportFormat: String, CaseIterable, Identifiable {
+public enum ExportFormat: String, CaseIterable, Identifiable, Sendable {
     case text = "txt"
     case markdown = "md"
     case pdf = "pdf"

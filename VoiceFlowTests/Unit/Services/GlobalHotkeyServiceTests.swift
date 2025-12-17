@@ -219,8 +219,7 @@ final class GlobalHotkeyServiceTests: XCTestCase {
 
     func testSetFloatingWidget() async {
         // Given
-        let mockAppState = AppState()
-        let mockViewModel = SimpleTranscriptionViewModel(appState: mockAppState)
+        let mockViewModel = SimpleTranscriptionViewModel()
         let mockWidget = MockFloatingWidget(viewModel: mockViewModel)
 
         // When

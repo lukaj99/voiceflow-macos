@@ -1,3 +1,4 @@
+import Dependencies
 import Foundation
 import Combine
 
@@ -16,10 +17,12 @@ public class TranscriptionCoordinator: ObservableObject {
 
     // MARK: - Dependencies
 
+    /// Injected credential client for secure API key management.
+    @Dependency(\.credentialClient) var credentialClient
+
     private let appState: AppState
     private let audioManager: AudioManager
     private let deepgramClient: DeepgramClient
-    private let credentialService: SecureCredentialService
     private let textProcessor: TranscriptionTextProcessor
     private let connectionManager: TranscriptionConnectionManager
 
@@ -31,14 +34,12 @@ public class TranscriptionCoordinator: ObservableObject {
         appState: AppState,
         audioManager: AudioManager = AudioManager(),
         deepgramClient: DeepgramClient = DeepgramClient(),
-        credentialService: SecureCredentialService = SecureCredentialService(),
         textProcessor: TranscriptionTextProcessor? = nil,
         connectionManager: TranscriptionConnectionManager = TranscriptionConnectionManager()
     ) {
         self.appState = appState
         self.audioManager = audioManager
         self.deepgramClient = deepgramClient
-        self.credentialService = credentialService
         self.textProcessor = textProcessor ?? TranscriptionTextProcessor(
             llmService: LLMPostProcessingService(),
             appState: AppState.shared
@@ -63,8 +64,11 @@ public class TranscriptionCoordinator: ObservableObject {
         }
 
         do {
-            // Get API key and validate
-            let apiKey = try await credentialService.getDeepgramAPIKey()
+            // Get API key and validate using injected credential client
+            guard let apiKey = try await credentialClient.getAPIKey(.deepgram) else {
+                setError("No API key found. Please configure your Deepgram API key.")
+                return
+            }
 
             // Connect to Deepgram service
             let connected = await connectionManager.connect(apiKey: apiKey, client: deepgramClient)

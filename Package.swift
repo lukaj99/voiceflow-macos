@@ -16,15 +16,18 @@ let package = Package(
         .package(url: "https://github.com/soffes/HotKey", from: "0.2.0"),
         .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.2.0"),
         .package(path: "ThirdParty/Starscream")
     ],
     targets: [
         .executableTarget(
             name: "VoiceFlow",
             dependencies: [
-                "HotKey", 
+                "HotKey",
                 "KeychainAccess",
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
                 "Starscream"
             ],
             path: "VoiceFlow",
@@ -48,7 +51,8 @@ let package = Package(
             name: "VoiceFlowTests",
             dependencies: [
                 "VoiceFlow",
-                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
+                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+                .product(name: "Dependencies", package: "swift-dependencies")
             ],
             path: "VoiceFlowTests",
             swiftSettings: [

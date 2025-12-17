@@ -36,29 +36,27 @@ extension SimpleTranscriptionViewModel {
 
     /// Initialize credentials on app startup
     func initializeCredentials() async {
-        do {
-            // Perform keychain health check first
-            let isHealthy = await credentialService.performHealthCheck()
+        // Perform keychain health check first
+        let isHealthy = await credentialClient.performHealthCheck()
 
-            guard isHealthy else {
-                errorMessage = "Keychain access issue. Please check app permissions."
-                isConfigured = false
-                return
-            }
-
-            // Try to configure from environment first (for development/CI)
-            do {
-                try await credentialService.configureFromEnvironment()
-                print("🔐 Credentials configured from environment")
-            } catch {
-                // Environment configuration failed, user needs to configure manually
-                print("ℹ️ No environment credentials found, user configuration required")
-            }
-
-            // Verify configuration status
-            await checkCredentialStatus()
-
-            print("🔐 Credentials initialized: \(isConfigured ? "✅ Configured" : "❌ Requires user configuration")")
+        guard isHealthy else {
+            errorMessage = "Keychain access issue. Please check app permissions."
+            isConfigured = false
+            return
         }
+
+        // Try to configure from environment first (for development/CI)
+        do {
+            try await credentialClient.configureFromEnvironment()
+            print("🔐 Credentials configured from environment")
+        } catch {
+            // Environment configuration failed, user needs to configure manually
+            print("ℹ️ No environment credentials found, user configuration required")
+        }
+
+        // Verify configuration status
+        await checkCredentialStatus()
+
+        print("🔐 Credentials initialized: \(isConfigured ? "✅ Configured" : "❌ Requires user configuration")")
     }
 }

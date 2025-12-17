@@ -116,10 +116,11 @@ final class SecureCredentialServiceEdgeCaseTests: XCTestCase {
         try await credentialService.store(credential: testCredential, for: .deepgramAPIKey)
 
         // When - concurrent retrieves
+        let service = credentialService!
         await withTaskGroup(of: String?.self) { group in
             for _ in 0..<50 {
                 group.addTask {
-                    try? await self.credentialService.retrieve(for: .deepgramAPIKey)
+                    try? await service.retrieve(for: .deepgramAPIKey)
                 }
             }
 
@@ -335,18 +336,19 @@ final class SecureCredentialServiceEdgeCaseTests: XCTestCase {
         let testCredential = String(repeating: "a", count: 32)
 
         // When - concurrent operations
+        let service = credentialService!
         await withTaskGroup(of: Void.self) { group in
             // Store operations
             for _ in 0..<10 {
                 group.addTask {
-                    try? await self.credentialService.store(credential: testCredential, for: .deepgramAPIKey)
+                    try? await service.store(credential: testCredential, for: .deepgramAPIKey)
                 }
             }
 
             // Retrieve operations
             for _ in 0..<10 {
                 group.addTask {
-                    _ = try? await self.credentialService.retrieve(for: .deepgramAPIKey)
+                    _ = try? await service.retrieve(for: .deepgramAPIKey)
                 }
             }
 
@@ -365,10 +367,12 @@ final class SecureCredentialServiceEdgeCaseTests: XCTestCase {
         // When/Then - rapid cycles
         for _ in 0..<10 {
             try await credentialService.store(credential: testCredential, for: .deepgramAPIKey)
-            XCTAssertTrue(await credentialService.exists(for: .deepgramAPIKey))
+            let existsAfterStore = await credentialService.exists(for: .deepgramAPIKey)
+            XCTAssertTrue(existsAfterStore)
 
             try await credentialService.remove(for: .deepgramAPIKey)
-            XCTAssertFalse(await credentialService.exists(for: .deepgramAPIKey))
+            let existsAfterRemove = await credentialService.exists(for: .deepgramAPIKey)
+            XCTAssertFalse(existsAfterRemove)
         }
     }
 }
